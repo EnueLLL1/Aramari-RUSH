@@ -7,7 +7,7 @@ import javax.swing.*;
 
 public class MenuPrincipal extends JPanel {
 
-    private Image fundoTela;
+    private Image fundoTela, spriteTitulo;
     private JButton btnJogar, btnSair;
     private Image spriteJogar, spriteSair;
 
@@ -16,6 +16,10 @@ public class MenuPrincipal extends JPanel {
         ImageIcon pegaimagem = new ImageIcon("src//res//fundo_menu.png");
         fundoTela = pegaimagem.getImage();
         
+        //Carrega o sprite do titulo
+        ImageIcon tituloIcon = new ImageIcon("src//res//titulo_sprite.png");
+        spriteTitulo = tituloIcon.getImage();
+
         // Carrega os sprites dos botões
         ImageIcon jogarIcon = new ImageIcon("src//res//jogar_sprite.png");   
         spriteJogar = jogarIcon.getImage();
@@ -163,21 +167,16 @@ public class MenuPrincipal extends JPanel {
 
         //TODO: FAZER A IMAGEM DE TITULO FUNCIONAR (TORTURA)
         // Título do jogo
-        g2.setColor(Color.YELLOW);
-        g2.setFont(new Font("Arial", Font.BOLD, 48));
-        String titulo = "DIAMONDS FOR THE QUEEN";
-        FontMetrics fm = g2.getFontMetrics();
-        int tituloX = (panelW - fm.stringWidth(titulo)) / 2;
-        int tituloY = 100;
-
-        // Sombra do título
-        g2.setColor(Color.BLACK);
-        g2.drawString(titulo, tituloX + 2, tituloY + 2);
+        if (spriteTitulo != null) {
+            int imgW = spriteTitulo.getWidth(this) / 2;
+            int imgH = spriteTitulo.getHeight(this) / 12;
         
-        // Título
-        g2.setColor(Color.YELLOW);
-        g2.drawString(titulo, tituloX, tituloY);
 
+            int panelWi = getWidth() / 3;
+            int panelHi = getHeight() / 3;
+            g2.drawImage(spriteTitulo, 625, imgH, panelWi, panelHi, this);
+
+        }
         g2.dispose();
     }
 }
