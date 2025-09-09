@@ -1,17 +1,20 @@
 package Modelo;
 
+import AramariRUSH.Container;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 
-public class MenuPrincipal extends JPanel {
+public class MenuPanel extends JPanel {
 
     private Image fundoTela, spriteTitulo;
     private JButton btnJogar, btnSair;
     private Image spriteJogar, spriteSair;
 
-    public MenuPrincipal() {
+    public MenuPanel(Container window) {
+
         // Carrega a imagem de fundo
         ImageIcon pegaimagem = new ImageIcon("src//res//fundo_menu.png");
         fundoTela = pegaimagem.getImage();
@@ -39,18 +42,14 @@ public class MenuPrincipal extends JPanel {
         estilizarBotao(btnSair, spriteSair);
         
         // Adiciona ações aos botões
-        btnJogar.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(MenuPrincipal.this, "Iniciando o jogo...");
-                // TODO: Mudar para a tela do jogo rodando
-            }
+        btnJogar.addActionListener(e -> {
+            window.showScreen("Gameplay");
         });
         
         btnSair.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int resposta = JOptionPane.showConfirmDialog(MenuPrincipal.this, 
+                int resposta = JOptionPane.showConfirmDialog(MenuPanel.this,
                     "Tem certeza que deseja sair?", 
                     "", 
                     JOptionPane.YES_NO_OPTION);
