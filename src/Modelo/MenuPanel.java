@@ -18,108 +18,91 @@ public class MenuPanel extends JPanel {
         // Carrega a imagem de fundo
         ImageIcon pegaimagem = new ImageIcon("src//res//fundo_menu.png");
         fundoTela = pegaimagem.getImage();
-        
-        //Carrega o sprite do titulo
+
+        // Carrega o sprite do título
         ImageIcon tituloIcon = new ImageIcon("src//res//titulo_sprite.png");
         spriteTitulo = tituloIcon.getImage();
 
         // Carrega os sprites dos botões
-        ImageIcon jogarIcon = new ImageIcon("src//res//jogar_sprite.png");   
+        ImageIcon jogarIcon = new ImageIcon("src//res//jogar_sprite.png");
         spriteJogar = jogarIcon.getImage();
-        ImageIcon sairIcon = new ImageIcon("src//res//sair_sprite.png");   
+        ImageIcon sairIcon = new ImageIcon("src//res//sair_sprite.png");
         spriteSair = sairIcon.getImage();
-        
+
         // Configura o layout
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        
+
         // Cria os botões
         btnJogar = new JButton();
         btnSair = new JButton();
-        
-        // Estiliza os botões
+
+        // Estiliza os botões inicialmente
         estilizarBotao(btnJogar, spriteJogar);
         estilizarBotao(btnSair, spriteSair);
-        
-        // Adiciona ações aos botões
+
+        // Ações dos botões
         btnJogar.addActionListener(e -> {
             window.showScreen("Gameplay");
         });
-        
+
         btnSair.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int resposta = JOptionPane.showConfirmDialog(MenuPanel.this,
-                    "Tem certeza que deseja sair?", 
-                    "", 
-                    JOptionPane.YES_NO_OPTION);
+                        "Você tem certeza que vai deixar Aramari?",
+                        "",
+                        JOptionPane.YES_NO_OPTION);
                 if (resposta == JOptionPane.YES_OPTION) {
                     System.exit(0);
                 }
             }
         });
-        
+
         // Posicionamento dos botões
         gbc.insets = new Insets(30, 20, 30, 20);
         gbc.fill = GridBagConstraints.NONE;
-        
+
         gbc.gridy = 0;
         add(btnJogar, gbc);
-        
+
         gbc.gridy = 1;
         add(btnSair, gbc);
     }
-    
+
     private void estilizarBotao(JButton botao, Image sprite) {
+        // Remove bordas e fundo padrão
+        botao.setBorder(null);
+        botao.setContentAreaFilled(false);
+        botao.setFocusPainted(false);
+        botao.setOpaque(false);
+
+        // Ícone inicial
         if (sprite != null) {
-            // Define o tamanho do botão baseado no sprite
-            int largura = sprite.getWidth(null);
-            int altura = sprite.getHeight(null);
-            
-            // Escala o botão se necessário
-            if (largura > 250) {
-                double escala = 250.0 / largura;
-                largura = (int)(largura * escala);
-                altura = (int)(altura * escala);
-            }
-            
+            ImageIcon scaledIcon = new ImageIcon(sprite.getScaledInstance(200, 60, Image.SCALE_SMOOTH));
+            botao.setIcon(scaledIcon);
+        }
+    }
+
+    // Redimensiona os botões conforme o tamanho do painel
+    @Override
+    public void doLayout() {
+        super.doLayout();
+        int panelW = getWidth();
+        int panelH = getHeight();
+
+        int larguraBtn = panelW / 4;  // 1/4 da largura do painel
+        int alturaBtn = panelH / 10;  // 1/10 da altura do painel
+
+        redimensionarBotao(btnJogar, spriteJogar, larguraBtn, alturaBtn);
+        redimensionarBotao(btnSair, spriteSair, larguraBtn, alturaBtn);
+    }
+
+    private void redimensionarBotao(JButton botao, Image sprite, int largura, int altura) {
+        if (sprite != null && largura > 0 && altura > 0) {
+            ImageIcon scaledIcon = new ImageIcon(sprite.getScaledInstance(largura, altura, Image.SCALE_SMOOTH));
+            botao.setIcon(scaledIcon);
             botao.setPreferredSize(new Dimension(largura, altura));
-            
-            // Remove bordas e backgrounds padrão
-            botao.setBorder(null);
-            botao.setContentAreaFilled(false);
-            botao.setFocusPainted(false);
-            botao.setOpaque(false);
-            
-            // Define o ícone do botão
-            final int larguraFinal = largura;
-            final int alturaFinal = altura; 
-                ImageIcon scaledIcon = new ImageIcon(sprite.getScaledInstance(larguraFinal, alturaFinal, Image.SCALE_SMOOTH));
-                botao.setIcon(scaledIcon);
-            
-            // Efeito hover
-            botao.addMouseListener(new java.awt.event.MouseAdapter() {
-                    @Override
-                    public void mouseEntered(java.awt.event.MouseEvent evt) {
-                        ImageIcon hoveredIcon = new ImageIcon(sprite.getScaledInstance(
-                            (int)(larguraFinal * 1.05), (int)(alturaFinal * 1.05), Image.SCALE_SMOOTH));
-                        botao.setIcon(hoveredIcon);
-                    }
-                    
-                    @Override
-                    public void mouseExited(java.awt.event.MouseEvent evt) {
-                        botao.setIcon(scaledIcon);
-                    }
-                });
-        } else {
-            //caso a imagem não carregue
-            botao.setPreferredSize(new Dimension(200, 50));
-            botao.setFont(new Font("Arial", Font.BOLD, 18));
-            botao.setForeground(Color.WHITE);
-            botao.setBackground(new Color(0, 0, 0, 150));
-            botao.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 2));
-            botao.setFocusPainted(false);
-            botao.setOpaque(false);
         }
     }
 
@@ -134,7 +117,7 @@ public class MenuPanel extends JPanel {
         int panelW = getWidth();
         int panelH = getHeight();
 
-        // Desenha o fundo
+        // Fundo responsivo
         if (fundoTela != null) {
             int imgW = fundoTela.getWidth(this);
             int imgH = fundoTela.getHeight(this);
@@ -159,23 +142,21 @@ public class MenuPanel extends JPanel {
                 g2.drawImage(fundoTela, x, y, drawW, drawH, this);
             }
         } else {
-            // Fundo alternativo
             g2.setColor(new Color(25, 25, 112));
             g2.fillRect(0, 0, panelW, panelH);
         }
 
-        //TODO: FAZER A IMAGEM DE TITULO FUNCIONAR (TORTURA)
-        // Título do jogo
+        // Título responsivo
         if (spriteTitulo != null) {
-            int imgW = spriteTitulo.getWidth(this) / 2;
-            int imgH = spriteTitulo.getHeight(this) / 12;
-        
+            int targetW = panelW / 3;   // 1/3 da largura da tela
+            int targetH = panelH / 6;   // proporcional à altura
 
-            int panelWi = getWidth() / 3;
-            int panelHi = getHeight() / 3;
-            g2.drawImage(spriteTitulo, 625, imgH, panelWi, panelHi, this);
+            int x = (panelW - targetW) / 2; // centraliza
+            int y = panelH / 10;            // margem superior
 
+            g2.drawImage(spriteTitulo, x, y, targetW, targetH, this);
         }
+
         g2.dispose();
     }
 }

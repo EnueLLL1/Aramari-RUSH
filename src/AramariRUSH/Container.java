@@ -33,7 +33,7 @@ public class Container extends JFrame {
         add(mainPanel);
 
         setResizable(true);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
+//        setExtendedState(JFrame.DISPOSE_ON_CLOSE);
 
         setVisible(true);
     }
