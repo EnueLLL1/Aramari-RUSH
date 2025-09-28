@@ -9,6 +9,7 @@ public class Player extends JPanel {
    
     private int x, y;
     private int dx, dy;
+    private int lastDx, lastDy;
     private Image imagem;
     private int altura, largura;
     private final int VELOCIDADE = 10;
@@ -18,6 +19,8 @@ public class Player extends JPanel {
         this.y = 300 - 25;
         this.dx = 0;
         this.dy = 0;
+        this.lastDx = VELOCIDADE; 
+        this.lastDy = 0;
     }
 
     public void load(){
@@ -36,6 +39,10 @@ public class Player extends JPanel {
     public void update(){
         x += dx;
         y += dy;
+        
+        
+        if (dx != 0) lastDx = dx;
+        if (dy != 0) lastDy = dy;
         
         // Controla os limites da tela (assumindo 800x600)
         if(x < 0) x = 0;
@@ -92,5 +99,29 @@ public class Player extends JPanel {
 
     public void setImagem(Image imagem) {
         this.imagem = imagem;
+    }
+
+    public int getLargura() {
+        return largura;
+    }
+
+    public int getAltura() {
+        return altura;
+    }
+
+    public int getDx() {
+        return dx;
+    }
+
+    public int getDy() {
+        return dy;
+    }
+
+    public int getLastDx() {
+        return lastDx;
+    }
+
+    public int getLastDy() {
+        return lastDy;
     }
 }

@@ -5,11 +5,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Iterator;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public class GameplayPanel extends JPanel implements ActionListener {
     
+    private ArrayList<Projectile> projectiles;
     private Player player;
     private Timer timer;
 
@@ -20,6 +23,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         player = new Player();
         player.load();
+        projectiles = new ArrayList<>(); // Lista pros projeteis
+        //Pra outros sprites, adicionar aqui
+
 
         addKeyListener(new TecladoAdapter());
 
@@ -42,6 +48,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
             graficos.drawImage(player.getImagem(), player.getX(), player.getY(), this);
         }
         
+        // Desenha os projeteis
+        for(Projectile projectile : projectiles) {
+            if(projectile.getImagem() != null) {
+                graficos.drawImage(projectile.getImagem(), projectile.getX(), projectile.getY(), this);
+            }
+        }
+
         // Toolkit para sincronização
         Toolkit.getDefaultToolkit().sync();
     }
@@ -49,13 +62,39 @@ public class GameplayPanel extends JPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         player.update();
+        // Update nos projetil e remove fora da tela
+        Iterator<Projectile> it = projectiles.iterator();
+        while (it.hasNext()) {
+            Projectile p = it.next();
+            p.update();
+            if (!p.isVisible()) {
+                it.remove();
+            }
+        }
+
+        //Adicionar aqui os sprites dos inimigos tambem
+
         repaint();
     }
 
     private class TecladoAdapter extends KeyAdapter {
+        // TODO fazer o player atirar em 4 direções
         @Override
         public void keyPressed(KeyEvent e) {
-            player.keyPressed(e);
+           int codigo = e.getKeyCode();
+            if (codigo == KeyEvent.VK_SPACE) {
+                int projDx = player.getDx() != 0 ? player.getDx() : player.getLastDx();
+                int projDy = player.getDy() != 0 ? player.getDy() : player.getLastDy();
+
+                projectiles.add(new Projectile(
+                    player.getX() + (player.getLargura() / 2),
+                    player.getY() + (player.getAltura() / 2),
+                    projDx,
+                    projDy 
+                ));
+            } else {
+                player.keyPressed(e);
+            }
         }
         
         @Override
