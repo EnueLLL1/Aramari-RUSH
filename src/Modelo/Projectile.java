@@ -9,13 +9,12 @@ public class Projectile {
     private Image imagem;
     private int largura, altura;
     private boolean visible;
-    private final int VELOCIDADE = 4;
 
     public Projectile(int startX, int startY, int directionX, int directionY) {
         this.x = startX;
         this.y = startY;
-        this.dx = directionX * VELOCIDADE;
-        this.dy = directionY * VELOCIDADE; 
+        this.dx = directionX;
+        this.dy = directionY; 
         this.visible = true;
         load();
     }
@@ -31,6 +30,7 @@ public class Projectile {
 
     public void update() {
         x += dx;
+        y += dy;
         if (x > 800) {
             visible = false;
         }

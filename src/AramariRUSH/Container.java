@@ -65,6 +65,7 @@ public class Container extends JFrame {
         SwingUtilities.invokeLater(() -> {
             if ("Gameplay".equals(name)) {
                 gameplayPanel.requestFocusInWindow();
+                gameplayPanel.setStarted(true);
                 System.out.println("Foco transferido para GameplayPanel");
             } else if ("Menu".equals(name)) {
                 menuPanel.requestFocusInWindow();

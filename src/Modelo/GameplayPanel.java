@@ -12,6 +12,15 @@ import javax.swing.Timer;
 
 public class GameplayPanel extends JPanel implements ActionListener {
     
+    private Timer gameTimer;
+    private Timer countdownTimer;
+    private int timeLeft = 120;
+    private boolean isGameOver = false;
+    private boolean isStarted = false;
+
+    private int score = 0;
+
+
     private ArrayList<Projectile> projectiles;
     private Player player;
     private Timer timer;
@@ -20,6 +29,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
         setFocusable(true);
         setDoubleBuffered(true);
         setBackground(Color.BLACK);
+
+        //Timer do jogo
+        gameTimer = new Timer(16, this); 
+        countdownTimer = new Timer(1000, e -> updateTime());
 
         player = new Player();
         player.load();
@@ -31,8 +44,23 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         timer = new Timer(5, this);
         timer.start();
+        gameTimer.start();
+        countdownTimer.start();
+        
     }
 
+        private void updateTime() { 
+            if (this.isStarted == true) {
+                if (timeLeft > 0) { 
+                    timeLeft--; 
+                } else { 
+                    isGameOver = true;
+                    setStarted(false); 
+                    countdownTimer.stop(); 
+                    gameTimer.stop(); 
+                } 
+            }
+        }
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g); 
@@ -55,9 +83,31 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
 
-        // Toolkit para sincronização
+        if (isGameOver) { // Tela de Game Over 
+            g.setColor(Color.RED); 
+            g.setFont(new Font("Arial", Font.BOLD, 48));
+                g.drawString("GAME OVER", getWidth() / 2 - 150, getHeight() / 2);
+                g.setFont(new Font("Arial", Font.PLAIN, 24));
+                g.drawString("Pontuação: " + score, getWidth() / 2 - 70, getHeight() / 2 + 40);
+
+            return;
+            
+            }
+
+            // HUD
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 18)); 
+            g.drawString("Pontuação: " + score, 20, 30); 
+            g.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
+
         Toolkit.getDefaultToolkit().sync();
     }
+
+    private String formatTime(int seconds) { 
+        int min = seconds / 60; int sec = seconds % 60; 
+        return String.format("%02d:%02d", min, sec);
+     }
+
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -78,13 +128,19 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private class TecladoAdapter extends KeyAdapter {
-        // TODO fazer o player atirar em 4 direções
         @Override
         public void keyPressed(KeyEvent e) {
            int codigo = e.getKeyCode();
             if (codigo == KeyEvent.VK_SPACE) {
-                int projDx = player.getDx() != 0 ? player.getDx() : player.getLastDx();
-                int projDy = player.getDy() != 0 ? player.getDy() : player.getLastDy();
+                int projDx = player.getPdx() != 0 ? player.getPdx() : player.getLastPdx();
+                int projDy = player.getPdy() != 0 ? player.getPdy() : player.getLastPdy();
+
+                    if (projDx == 0 && projDy == 0) {
+                        projDx = player.getLastPdx();   
+                        projDy = player.getLastPdy();
+                    }
+                player.setPdx(0);
+                player.setPdy(0);
 
                 projectiles.add(new Projectile(
                     player.getX() + (player.getLargura() / 2),
@@ -102,4 +158,14 @@ public class GameplayPanel extends JPanel implements ActionListener {
             player.keyRelease(e);
         }
     }
+
+    public boolean isStarted() {
+        return isStarted;
+    }
+
+    public void setStarted(boolean isStarted) {
+        this.isStarted = isStarted;
+    }
+
+    
 }
