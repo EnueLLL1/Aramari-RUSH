@@ -13,8 +13,8 @@ public class Projectile {
     public Projectile(int startX, int startY, int directionX, int directionY) {
         this.x = startX;
         this.y = startY;
-        this.dx = directionX;
-        this.dy = directionY; 
+        this.dx = directionX * 2;
+        this.dy = directionY * 2; 
         this.visible = true;
         load();
     }

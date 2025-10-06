@@ -12,7 +12,7 @@ public class Player extends JPanel {
     private int lastDx, lastDy, lastPdx, lastPdy;
     private Image imagem;
     private int altura, largura;
-    private final int VELOCIDADE = 4;
+    private final int VELOCIDADE = 3;
 
     public Player(){
         this.x = 400 - 25; 
