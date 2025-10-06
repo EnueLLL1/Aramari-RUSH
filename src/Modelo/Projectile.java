@@ -9,7 +9,7 @@ public class Projectile {
     private Image imagem;
     private int largura, altura;
     private boolean visible;
-    private final int VELOCIDADE = 2;
+    private final int VELOCIDADE = 4;
 
     public Projectile(int startX, int startY, int directionX, int directionY) {
         this.x = startX;
