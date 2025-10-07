@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Random;
 import javax.swing.JPanel;
 import javax.swing.Timer;
+import tile.TileManager;
 
 public class GameplayPanel extends JPanel implements ActionListener {
 
@@ -19,6 +20,17 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private int timeLeft = 120;
     private boolean isGameOver = false;
     private boolean isStarted = false;
+
+
+    //Todos os tamanhos em pixels 
+    //TODO ajustar depois
+    
+    public final int tileSize = 16; // 16x16 pixels
+    public final int maxScreenCol = 50; 
+    public final int maxScreenRow = 50;
+    public final int screenWidth = tileSize * maxScreenCol; 
+    public final int screenHeight = tileSize * maxScreenRow; 
+    TileManager tileM = new TileManager(this);
 
     private int score = 0;
 
@@ -120,6 +132,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
         super.paintComponent(g);
 
         Graphics2D graficos = (Graphics2D) g;
+
+        // Desenha os tiles
+        tileM.draw(graficos);
 
         // Anti-aliasing para melhor qualidade
         graficos.setRenderingHint(RenderingHints.KEY_ANTIALIASING,

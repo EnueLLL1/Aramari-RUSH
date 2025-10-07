@@ -52,7 +52,7 @@ public class Player extends JPanel {
         if(x < 0) x = 0;
         if(y < 0) y = 0;
         if(x > 800 - largura) x = 800 - largura;
-        if(y > 600 - altura) y = 600 - altura;
+        if(y > 800 - altura) y = 800 - altura;
     }
 
     public void keyPressed(KeyEvent tecla) {

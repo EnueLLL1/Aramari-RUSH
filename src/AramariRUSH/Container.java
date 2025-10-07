@@ -16,7 +16,7 @@ public class Container extends JFrame {
 
     public Container() {
         // Configura a janela
-        setSize(800, 600);
+        setSize(800, 800);
         setTitle("Aramari-RUSH");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
