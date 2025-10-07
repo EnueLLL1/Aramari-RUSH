@@ -48,7 +48,7 @@ public class Player extends JPanel {
         if (dx != 0) lastDx = dx;
         if (dy != 0) lastDy = dy;
         
-        // Controla os limites da tela (assumindo 800x600)
+        // Controla os limites da tela (assumindo 800x800)
         if(x < 0) x = 0;
         if(y < 0) y = 0;
         if(x > 800 - largura) x = 800 - largura;
