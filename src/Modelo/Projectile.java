@@ -51,4 +51,12 @@ public class Projectile {
     public boolean isVisible() {
         return visible;
     }
+
+    public int getLargura() {
+        return largura;
+    }
+
+    public int getAltura() {
+        return altura;
+    }
 }

@@ -76,8 +76,17 @@ public class GameplayPanel extends JPanel implements ActionListener {
         }
 
         // Posição aleatória na tela
-        int x = rand.nextInt(getWidth() - 50);
-        int y = rand.nextInt(getHeight() - 50);
+        int x, y;
+        int maxAttempts = 20;
+        int attempts = 0;
+
+        do {
+            x = rand.nextInt(maxScreenCol - 2) + 1;
+            y = rand.nextInt(maxScreenRow - 2) + 1;
+            x *= tileSize;
+            y *= tileSize;
+            attempts++;
+        } while (attempts < maxAttempts && checkTileCollisionAt(x, y, 32, 32));
 
         // Define o tipo de diamante baseado em probabilidade
         int chance = rand.nextInt(100);
@@ -114,6 +123,107 @@ public class GameplayPanel extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * Verifica se o player está colidindo com algum tile sólido
+     * @return true se houver colisão, false caso contrário
+     */
+    private boolean checkPlayerTileCollision() {
+        // Define a hitbox do jogador (ajuste as margens conforme necessário)
+        // Para um sprite de 16x16, uma margem de 2-4 pixels é boa
+        int hitboxMargin = 3;
+        int hitboxX = player.getX() + hitboxMargin;
+        int hitboxY = player.getY() + hitboxMargin;
+        int hitboxWidth = player.getLargura() - (hitboxMargin * 2);
+        int hitboxHeight = player.getAltura() - (hitboxMargin * 2);
+
+        // Calcula em quais tiles os 4 cantos da hitbox estão
+        int leftCol = hitboxX / tileSize;
+        int rightCol = (hitboxX + hitboxWidth) / tileSize;
+        int topRow = hitboxY / tileSize;
+        int bottomRow = (hitboxY + hitboxHeight) / tileSize;
+
+        // Garante que não saia dos limites do mapa
+        if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
+            return true; // Considera como colisão se sair do mapa
+        }
+
+        // Verifica os 4 tiles ao redor do jogador
+        int tileNum1 = tileM.mapTileNum[leftCol][topRow];      // Canto superior esquerdo
+        int tileNum2 = tileM.mapTileNum[rightCol][topRow];     // Canto superior direito
+        int tileNum3 = tileM.mapTileNum[leftCol][bottomRow];   // Canto inferior esquerdo
+        int tileNum4 = tileM.mapTileNum[rightCol][bottomRow];  // Canto inferior direito
+
+        // Verifica se algum dos tiles tem colisão
+        return tileM.tile[tileNum1].collision ||
+                tileM.tile[tileNum2].collision ||
+                tileM.tile[tileNum3].collision ||
+                tileM.tile[tileNum4].collision;
+    }
+
+    /**
+     * Verifica colisão de um projétil com tiles
+     * @param p O projétil a verificar
+     * @return true se houver colisão
+     */
+    private boolean checkProjectileTileCollision(Projectile p) {
+        // Calcula tiles ocupados pelo projétil
+        int leftCol = p.getX() / tileSize;
+        int rightCol = (p.getX() + p.getLargura()) / tileSize;
+        int topRow = p.getY() / tileSize;
+        int bottomRow = (p.getY() + p.getAltura()) / tileSize;
+
+        // Garante que está dentro dos limites
+        if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
+            return true;
+        }
+
+        // Verifica os tiles ao redor do projétil
+        for (int col = leftCol; col <= rightCol; col++) {
+            for (int row = topRow; row <= bottomRow; row++) {
+                if (col >= 0 && col < maxScreenCol && row >= 0 && row < maxScreenRow) {
+                    int tileNum = tileM.mapTileNum[col][row];
+                    if (tileM.tile[tileNum].collision) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica colisão em uma área específica (útil para spawn)
+     * @param x Posição X
+     * @param y Posição Y
+     * @param width Largura
+     * @param height Altura
+     * @return true se houver colisão
+     */
+    private boolean checkTileCollisionAt(int x, int y, int width, int height) {
+        int leftCol = x / tileSize;
+        int rightCol = (x + width) / tileSize;
+        int topRow = y / tileSize;
+        int bottomRow = (y + height) / tileSize;
+
+        // Garante que está dentro dos limites
+        if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
+            return true;
+        }
+
+        // Verifica todos os tiles na área
+        for (int col = leftCol; col <= rightCol; col++) {
+            for (int row = topRow; row <= bottomRow; row++) {
+                int tileNum = tileM.mapTileNum[col][row];
+                if (tileM.tile[tileNum].collision) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void updateTime() {
         if (this.isStarted == true) {
             if (timeLeft > 0) {
@@ -143,6 +253,16 @@ public class GameplayPanel extends JPanel implements ActionListener {
         // Desenha o player
         if (player.getImagem() != null) {
             graficos.drawImage(player.getImagem(), player.getX(), player.getY(), this);
+
+            // ========== DEBUG: Desenha hitbox (remova depois de testar) ==========
+            graficos.setColor(new Color(255, 0, 0, 100)); // Vermelho transparente
+            int hitboxMargin = 3;
+            graficos.drawRect(
+                    player.getX() + hitboxMargin,
+                    player.getY() + hitboxMargin,
+                    player.getLargura() - (hitboxMargin * 2),
+                    player.getAltura() - (hitboxMargin * 2)
+            );
         }
 
         // Desenha os projeteis
@@ -189,13 +309,26 @@ public class GameplayPanel extends JPanel implements ActionListener {
     public void actionPerformed(ActionEvent e) {
 
         if (isStarted && !isGameOver) {
+
+            int oldX = player.getX();
+            int oldY = player.getY();
+
             player.update();
 
+            if(checkPlayerTileCollision()){
+                player.setX(oldX);
+                player.setY(oldY);
+            }
             // Update nos projéteis e remove fora da tela
             Iterator<Projectile> it = projectiles.iterator();
             while (it.hasNext()) {
                 Projectile p = it.next();
                 p.update();
+                //Se colidir com uma parede ele desaparece
+                if (checkProjectileTileCollision(p)){
+                    it.remove();
+                    continue;
+                }
                 if (!p.isVisible()) {
                     it.remove();
                 }
