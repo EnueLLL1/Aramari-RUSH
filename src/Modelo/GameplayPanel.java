@@ -34,11 +34,14 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private int score = 0;
 
-    private ArrayList<Collectible> collectibles;
-    private Random rand = new Random();
+    private ArrayList<Enemy> enemies;
     private ArrayList<Projectile> projectiles;
+    private ArrayList<Collectible> collectibles;
+
+    private Random rand = new Random();
     private Player player;
     private Timer timer;
+    private Timer enemySpawnTimer;
 
     // Estratégia de pontuação (Strategy Pattern) 
     private ScoreStrategy scoreStrategy;
@@ -52,11 +55,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
         gameTimer = new Timer(16, this);
         countdownTimer = new Timer(1000, e -> updateTime());
         spawnTimer = new Timer(3000, e -> spawnDiamond());
+        enemySpawnTimer = new Timer(5000, e -> spawnEnemy()); // Spawn a cada 5 segundos
 
         player = new Player();
         player.load();
         projectiles = new ArrayList<>(); // Lista pros projeteis
         collectibles = new ArrayList<>(); // Lista dos coletáveis
+        enemies = new ArrayList<>(); // Lista de inimigos
 
         //Pra outros sprites, adicionar aqui
         scoreStrategy = new CommonScoreStrategy();
@@ -68,6 +73,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         gameTimer.start();
         countdownTimer.start();
         spawnTimer.start();
+        enemySpawnTimer.start();
     }
 
     private void spawnDiamond() {
@@ -103,6 +109,31 @@ public class GameplayPanel extends JPanel implements ActionListener {
         collectibles.add(new Collectible(x, y, type));
     }
 
+    /**
+     * Spawna um inimigo em posição aleatória
+     */
+    private void spawnEnemy() {
+        if (!isStarted || isGameOver) {
+            return;
+        }
+
+        // Posição aleatória na tela
+        int x, y;
+        int maxAttempts = 20;
+        int attempts = 0;
+
+        do {
+            x = rand.nextInt(maxScreenCol - 2) + 1;
+            y = rand.nextInt(maxScreenRow - 2) + 1;
+            x *= tileSize;
+            y *= tileSize;
+            attempts++;
+        } while (attempts < maxAttempts && checkTileCollisionAt(x, y, 32, 32));
+
+        // Cria um inimigo aleatório usando a Factory
+        enemies.add(EnemyFactory.createRandomEnemy(x, y));
+    }
+
     private void checkCollisions() {
         Rectangle playerBounds = new Rectangle(
                 player.getX(),
@@ -119,6 +150,69 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 score += scoreStrategy.calculateScore(c);
                 c.setVisivel(false);
                 it.remove();
+            }
+        }
+    }
+
+    /**
+     * Verifica colisões entre projéteis e inimigos
+     */
+    private void checkProjectileEnemyCollisions() {
+        Iterator<Projectile> projIt = projectiles.iterator();
+
+        while (projIt.hasNext()) {
+            Projectile proj = projIt.next();
+            Rectangle projBounds = new Rectangle(
+                    proj.getX(),
+                    proj.getY(),
+                    proj.getLargura(),
+                    proj.getAltura()
+            );
+
+            Iterator<Enemy> enemyIt = enemies.iterator();
+            while (enemyIt.hasNext()) {
+                Enemy enemy = enemyIt.next();
+
+                if (enemy.isVisivel() && projBounds.intersects(enemy.getBounds())) {
+                    // Inimigo leva dano
+                    enemy.takeDamage(50); // 50 de dano por projétil
+
+                    // Remove o projétil
+                    projIt.remove();
+
+                    // Se o inimigo morreu, adiciona score
+                    if (!enemy.isVisivel()) {
+                        score += enemy.getScore();
+                        enemyIt.remove();
+                    }
+
+                    break; // Sai do loop de inimigos para este projétil
+                }
+            }
+        }
+    }
+
+    /**
+     * Verifica colisões entre player e inimigos
+     */
+    private void checkPlayerEnemyCollisions() {
+        Rectangle playerBounds = new Rectangle(
+                player.getX(),
+                player.getY(),
+                player.getLargura(),
+                player.getAltura()
+        );
+
+        for (Enemy enemy : enemies) {
+            if (enemy.isVisivel() && playerBounds.intersects(enemy.getBounds())) {
+                // TODO: Implementar sistema de vida do player
+                // Por enquanto, apenas game over
+                isGameOver = true;
+                setStarted(false);
+                countdownTimer.stop();
+                gameTimer.stop();
+                enemySpawnTimer.stop();
+                break;
             }
         }
     }
@@ -279,6 +373,19 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
 
+        for (Enemy enemy : enemies) {
+            if (enemy.isVisivel() && enemy.getImagem() != null) {
+                graficos.drawImage(enemy.getImagem(), enemy.getX(), enemy.getY(), this);
+
+                // ========== DEBUG: Desenha barra de vida ==========
+                graficos.setColor(Color.RED);
+                graficos.fillRect(enemy.getX(), enemy.getY() - 5, enemy.getLargura(), 3);
+                graficos.setColor(Color.GREEN);
+                int healthWidth = (int) (enemy.getLargura() * (enemy.getHealth() / 100.0));
+                graficos.fillRect(enemy.getX(), enemy.getY() - 5, healthWidth, 3);
+            }
+        }
+
         if (isGameOver) { // TODO fix tela de game over
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 48));
@@ -334,10 +441,27 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 }
             }
 
+            // NOVO: Update nos inimigos
+            for (Enemy enemy : enemies) {
+                if (enemy.isVisivel()) {
+                    int oldEnemyX = enemy.getX();
+                    int oldEnemyY = enemy.getY();
+
+                    enemy.update(player.getX(), player.getY());
+
+                    // Verifica colisão do inimigo com tiles
+                    if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
+                            enemy.getLargura(), enemy.getAltura())) {
+                        enemy.setX(oldEnemyX);
+                        enemy.setY(oldEnemyY);
+                    }
+                }
+            }
             // Verifica colisões
             checkCollisions();
+            checkProjectileEnemyCollisions();
+            checkPlayerEnemyCollisions();
         }
-        //Adicionar aqui os sprites dos inimigos tambem
 
         repaint();
     }
