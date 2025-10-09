@@ -70,7 +70,7 @@ public class MenuPanel extends JPanel {
         add(btnSair, gbc);
     }
 
-    private void estilizarBotao(JButton botao, Image sprite) {
+    public void estilizarBotao(JButton botao, Image sprite) {
         // Remove bordas e fundo padrão
         botao.setBorder(null);
         botao.setContentAreaFilled(false);

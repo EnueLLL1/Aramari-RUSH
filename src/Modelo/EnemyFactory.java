@@ -42,7 +42,7 @@ public class EnemyFactory {
         return new Enemy.EnemyBuilder(x, y, Enemy.EnemyType.TIPO1)
                 .health(30)
                 .damage(10)
-                .speed(4)
+                .speed(2)
                 .score(75)
                 .build();
     }

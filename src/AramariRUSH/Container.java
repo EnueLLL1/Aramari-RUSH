@@ -26,7 +26,7 @@ public class Container extends JFrame {
 
         // Cria os painéis
         menuPanel = new MenuPanel(this);
-        gameplayPanel = new GameplayPanel();
+        gameplayPanel = new GameplayPanel(this);
 
         mainPanel.add(menuPanel, "Menu");
         mainPanel.add(gameplayPanel, "Gameplay");
@@ -35,7 +35,7 @@ public class Container extends JFrame {
         cardLayout.show(mainPanel, "Menu");
 
         add(mainPanel);
-        setResizable(true);
+        setResizable(false);
 
         // Listener para detectar mudanças de tela e dar foco apropriado
         addComponentListener(new ComponentAdapter() {
@@ -67,6 +67,9 @@ public class Container extends JFrame {
                 gameplayPanel.requestFocusInWindow();
                 gameplayPanel.setStarted(true);
                 System.out.println("Foco transferido para GameplayPanel");
+                if(gameplayPanel.isStarted()){
+                    gameplayPanel.reiniciarJogo();
+                }
             } else if ("Menu".equals(name)) {
                 menuPanel.requestFocusInWindow();
                 System.out.println("Foco transferido para MenuPanel");
