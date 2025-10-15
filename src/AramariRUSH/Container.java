@@ -15,37 +15,43 @@ public class Container extends JFrame {
     private MenuPanel menuPanel;
 
     public Container() {
-        // Configura a janela
-        setSize(800, 800);
-        setTitle("Aramari-RUSH");
+        // Configuração básica da janela
+        setTitle("DIAMONDS FOR THE QUEEN");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        setResizable(false);
 
+        // Layout de troca de telas
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // Cria os painéis
+        // Criação dos painéis
         menuPanel = new MenuPanel(this);
         gameplayPanel = new GameplayPanel(this);
 
+        // Define tamanhos fixos e coerentes
+        menuPanel.setPreferredSize(new Dimension(800, 800));
+        gameplayPanel.setPreferredSize(new Dimension(800, 800));
+
+        // Adiciona os painéis ao container principal
         mainPanel.add(menuPanel, "Menu");
         mainPanel.add(gameplayPanel, "Gameplay");
+        add(mainPanel);
+
+        // Ajusta a janela para o tamanho exato dos painéis
+        pack();
+        setLocationRelativeTo(null);
 
         // Mostra o menu inicialmente
         cardLayout.show(mainPanel, "Menu");
 
-        add(mainPanel);
-        setResizable(false);
-
-        // Listener para detectar mudanças de tela e dar foco apropriado
+        // Listener para focar o painel visível (boa prática)
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
-                // Força o foco no painel ativo
                 SwingUtilities.invokeLater(() -> {
                     Component[] components = mainPanel.getComponents();
                     for (Component comp : components) {
-                        if (comp.isVisible() && comp instanceof GameplayPanel) {
+                        if (comp.isVisible()) {
                             comp.requestFocusInWindow();
                             break;
                         }
@@ -57,29 +63,25 @@ public class Container extends JFrame {
         setVisible(true);
     }
 
-    // Método que permite outras classes trocarem de tela
+    // Método para alternar entre telas
     public void showScreen(String name) {
         cardLayout.show(mainPanel, name);
-        
-        // Força o foco no painel correto após a troca
+
         SwingUtilities.invokeLater(() -> {
             if ("Gameplay".equals(name)) {
-                gameplayPanel.requestFocusInWindow();
                 gameplayPanel.setStarted(true);
-                System.out.println("Foco transferido para GameplayPanel");
-                if(gameplayPanel.isStarted()){
-                    gameplayPanel.reiniciarJogo();
-                }
+                gameplayPanel.reiniciarJogo();
+                gameplayPanel.requestFocusInWindow();
+                System.out.println("→ Foco transferido para GameplayPanel");
             } else if ("Menu".equals(name)) {
+                gameplayPanel.setStarted(false);
                 menuPanel.requestFocusInWindow();
-                System.out.println("Foco transferido para MenuPanel");
+                System.out.println("→ Foco transferido para MenuPanel");
             }
         });
     }
-    
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new Container();
-        });
+        SwingUtilities.invokeLater(Container::new);
     }
 }

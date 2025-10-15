@@ -14,11 +14,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private Timer gameTimer;
     private Timer countdownTimer;
     private Timer spawnTimer;
+    private Timer enemySpawnTimer;
+
     private int timeLeft = 120;
     private boolean isGameOver = false;
     private boolean isStarted = false;
 
-    private long lastFpsTime = System.currentTimeMillis();
+    private long lastFpsTime = System.nanoTime();
     private int fpsCounter = 0;
     private int currentFps = 0;
 
@@ -37,26 +39,29 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private Random rand = new Random();
     private Player player;
-    private Timer timer;
-    private Timer enemySpawnTimer;
 
     private ScoreStrategy scoreStrategy;
 
-    //Botões de Game Over
     private JButton btnJogarNovamente;
     private JButton btnVoltarMenu;
     private Container containerRef;
 
-    public GameplayPanel(Container container) {
-        this.containerRef = container; // Salva referência
+    private Rectangle playerBounds;
+    private Rectangle projBounds;
 
+    public GameplayPanel(Container container) {
+        this.containerRef = container;
+
+        setPreferredSize(new Dimension(screenWidth, screenHeight));
         setFocusable(true);
         setDoubleBuffered(true);
         setBackground(Color.BLACK);
-        setLayout(null); // ← IMPORTANTE: Layout nulo para posicionar botões manualmente
+        setLayout(null);
 
-        // Timers
         gameTimer = new Timer(16, this);
+        gameTimer.setCoalesce(true);
+        gameTimer.setInitialDelay(0);
+
         countdownTimer = new Timer(1000, e -> updateTime());
         spawnTimer = new Timer(3000, e -> spawnDiamond());
         enemySpawnTimer = new Timer(5000, e -> spawnEnemy());
@@ -67,37 +72,32 @@ public class GameplayPanel extends JPanel implements ActionListener {
         collectibles = new ArrayList<>();
         enemies = new ArrayList<>();
 
+        playerBounds = new Rectangle();
+        projBounds = new Rectangle();
+
         scoreStrategy = new CommonScoreStrategy();
 
         addKeyListener(new TecladoAdapter());
 
-        timer = new Timer(5, this);
-        timer.start();
         gameTimer.start();
         countdownTimer.start();
         spawnTimer.start();
         enemySpawnTimer.start();
 
-        // CRIAR BOTÕES DE GAME OVER
         criarBotoesGameOver();
-
     }
 
-    // Método para criar botões
     private void criarBotoesGameOver() {
-        // Botão Jogar Novamente
         btnJogarNovamente = new JButton("Jogar Novamente");
         btnJogarNovamente.setFont(new Font("Arial", Font.BOLD, 20));
-        btnJogarNovamente.setFocusable(false); // Não rouba foco do painel
-        btnJogarNovamente.setVisible(false); // Invisível inicialmente
+        btnJogarNovamente.setFocusable(false);
+        btnJogarNovamente.setVisible(false);
 
-        // Estilização
         btnJogarNovamente.setBackground(new Color(0, 200, 0));
         btnJogarNovamente.setForeground(Color.WHITE);
         btnJogarNovamente.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
         btnJogarNovamente.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Efeitos de hover
         btnJogarNovamente.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -110,10 +110,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         });
 
-        // Ação do botão
         btnJogarNovamente.addActionListener(e -> reiniciarJogo());
 
-        // Botão Voltar ao Menu
         btnVoltarMenu = new JButton("Voltar ao Menu");
         btnVoltarMenu.setFont(new Font("Arial", Font.BOLD, 20));
         btnVoltarMenu.setFocusable(false);
@@ -138,12 +136,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         btnVoltarMenu.addActionListener(e -> voltarAoMenu());
 
-        // Adiciona botões ao painel
         add(btnJogarNovamente);
         add(btnVoltarMenu);
     }
 
-    // Método para posicionar botões
     private void posicionarBotoesGameOver() {
         int btnWidth = 250;
         int btnHeight = 60;
@@ -155,68 +151,49 @@ public class GameplayPanel extends JPanel implements ActionListener {
         btnVoltarMenu.setBounds(centerX, centerY + btnHeight + spacing, btnWidth, btnHeight);
     }
 
-    // Método para reiniciar o jogo
     public void reiniciarJogo() {
-
-        // Reseta todas as variáveis
         isGameOver = false;
         isStarted = true;
         score = 0;
         timeLeft = 120;
 
-        // Limpa listas
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
 
-        // Reseta posição do player
         player.setX(400);
         player.setY(400);
 
-        // Esconde botões
         btnJogarNovamente.setVisible(false);
         btnVoltarMenu.setVisible(false);
 
-        // Reinicia timers
         gameTimer.restart();
         countdownTimer.restart();
         spawnTimer.restart();
         enemySpawnTimer.restart();
 
-        // Devolve foco ao painel
         requestFocusInWindow();
-
-        System.out.println("🎮 Jogo reiniciado!");
     }
 
-    // Método para voltar ao menu
     private void voltarAoMenu() {
-        // Para todos os timers
         gameTimer.stop();
         countdownTimer.stop();
         spawnTimer.stop();
         enemySpawnTimer.stop();
-        timer.stop();
 
-        // Esconde botões
         btnJogarNovamente.setVisible(false);
         btnVoltarMenu.setVisible(false);
 
-        // Reseta variáveis
         isGameOver = false;
         isStarted = false;
         score = 0;
         timeLeft = 120;
 
-        // Limpa listas
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
 
-        // Volta ao menu
         containerRef.showScreen("Menu");
-
-        System.out.println("📋 Voltando ao menu...");
     }
 
     private void spawnDiamond() {
@@ -271,12 +248,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void checkCollisions() {
-        Rectangle playerBounds = new Rectangle(
-                player.getX(),
-                player.getY(),
-                player.getLargura(),
-                player.getAltura()
-        );
+        playerBounds.setBounds(player.getX(), player.getY(), player.getLargura(), player.getAltura());
 
         Iterator<Collectible> it = collectibles.iterator();
         while (it.hasNext()) {
@@ -294,12 +266,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         while (projIt.hasNext()) {
             Projectile proj = projIt.next();
-            Rectangle projBounds = new Rectangle(
-                    proj.getX(),
-                    proj.getY(),
-                    proj.getLargura(),
-                    proj.getAltura()
-            );
+            projBounds.setBounds(proj.getX(), proj.getY(), proj.getLargura(), proj.getAltura());
 
             Iterator<Enemy> enemyIt = enemies.iterator();
             while (enemyIt.hasNext()) {
@@ -321,12 +288,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void checkPlayerEnemyCollisions() {
-        Rectangle playerBounds = new Rectangle(
-                player.getX(),
-                player.getY(),
-                player.getLargura(),
-                player.getAltura()
-        );
+        playerBounds.setBounds(player.getX(), player.getY(), player.getLargura(), player.getAltura());
 
         for (Enemy enemy : enemies) {
             if (enemy.isVisivel() && playerBounds.intersects(enemy.getBounds())) {
@@ -340,7 +302,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 btnVoltarMenu.setVisible(true);
                 posicionarBotoesGameOver();
 
-
                 break;
             }
         }
@@ -350,8 +311,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int hitboxMargin = 3;
         int hitboxX = player.getX() + hitboxMargin;
         int hitboxY = player.getY() + hitboxMargin;
-        int hitboxWidth = player.getLargura() - (hitboxMargin * 2);
-        int hitboxHeight = player.getAltura() - (hitboxMargin * 2);
+        int hitboxWidth = player.getLargura() - (hitboxMargin << 1);
+        int hitboxHeight = player.getAltura() - (hitboxMargin << 1);
 
         int leftCol = hitboxX / tileSize;
         int rightCol = (hitboxX + hitboxWidth) / tileSize;
@@ -421,9 +382,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private void updateFPS() {
         fpsCounter++;
-        long currentTime = System.currentTimeMillis();
+        long currentTime = System.nanoTime();
 
-        if (currentTime - lastFpsTime >= 1000) {
+        if (currentTime - lastFpsTime >= 1000000000L) {
             currentFps = fpsCounter;
             fpsCounter = 0;
             lastFpsTime = currentTime;
@@ -437,7 +398,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void updateTime() {
-        if (this.isStarted == true) {
+        if (this.isStarted) {
             if (timeLeft > 0) {
                 timeLeft--;
             } else {
@@ -446,11 +407,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 countdownTimer.stop();
                 gameTimer.stop();
 
-                //Mostra botões quando tempo acaba
                 btnJogarNovamente.setVisible(true);
                 btnVoltarMenu.setVisible(true);
                 posicionarBotoesGameOver();
-
             }
         }
     }
@@ -463,41 +422,46 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         tileM.draw(graficos);
 
-        graficos.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
+        graficos.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         if (player.getImagem() != null) {
             graficos.drawImage(player.getImagem(), player.getX(), player.getY(), this);
         }
 
-        for (Projectile projectile : projectiles) {
+        for (int i = 0; i < projectiles.size(); i++) {
+            Projectile projectile = projectiles.get(i);
             if (projectile.getImagem() != null) {
                 graficos.drawImage(projectile.getImagem(), projectile.getX(), projectile.getY(), this);
             }
         }
 
-        for (Collectible collectible : collectibles) {
+        for (int i = 0; i < collectibles.size(); i++) {
+            Collectible collectible = collectibles.get(i);
             if (collectible.isVisivel() && collectible.getImagem() != null) {
                 graficos.drawImage(collectible.getImagem(), collectible.getX(), collectible.getY(), this);
             }
         }
 
-        for (Enemy enemy : enemies) {
+        for (int i = 0; i < enemies.size(); i++) {
+            Enemy enemy = enemies.get(i);
             if (enemy.isVisivel() && enemy.getImagem() != null) {
                 graficos.drawImage(enemy.getImagem(), enemy.getX(), enemy.getY(), this);
+
+                graficos.setColor(Color.RED);
+                graficos.fillRect(enemy.getX(), enemy.getY() - 5, enemy.getLargura(), 3);
+                graficos.setColor(Color.GREEN);
+                int healthWidth = (int) (enemy.getLargura() * (enemy.getHealth() / 100.0));
+                graficos.fillRect(enemy.getX(), enemy.getY() - 5, healthWidth, 3);
             }
         }
 
         if (isGameOver) {
-
-            // Texto GAME OVER
             graficos.setColor(Color.RED);
             graficos.setFont(new Font("Arial", Font.BOLD, 64));
             String gameOverText = "GAME OVER";
             int textWidth = graficos.getFontMetrics().stringWidth(gameOverText);
             graficos.drawString(gameOverText, getWidth() / 2 - textWidth / 2, getHeight() / 2 - 50);
 
-            // Pontuação
             graficos.setColor(Color.WHITE);
             graficos.setFont(new Font("Arial", Font.BOLD, 32));
             String scoreText = "Pontuação: " + score;
@@ -507,7 +471,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
             return;
         }
 
-        // HUD
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 18));
         g.drawString("Pontuação: " + score, 20, 30);
@@ -552,7 +515,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 }
             }
 
-            for (Enemy enemy : enemies) {
+            for (int i = 0; i < enemies.size(); i++) {
+                Enemy enemy = enemies.get(i);
                 if (enemy.isVisivel()) {
                     int oldEnemyX = enemy.getX();
                     int oldEnemyY = enemy.getY();
@@ -593,7 +557,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 }
                 player.setPdx(0);
                 player.setPdy(0);
-                if (apertinho == false) {
+                if (!apertinho) {
                     apertinho = true;
                     projectiles.add(new Projectile(
                             player.getX() + (player.getLargura() / 2),
