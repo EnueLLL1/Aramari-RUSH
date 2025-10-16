@@ -1,4 +1,4 @@
-package Modelo;
+package Modelo.Entidades;
 
 public class EnemyFactory {
 

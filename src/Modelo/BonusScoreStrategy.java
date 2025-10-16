@@ -1,5 +1,7 @@
 package Modelo;
 
+import Modelo.Entidades.Collectible;
+
 public class BonusScoreStrategy implements ScoreStrategy {
     @Override
     public int calculateScore(Collectible c) {

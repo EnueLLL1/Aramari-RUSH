@@ -1,19 +1,15 @@
-package Modelo;
+package Modelo.Entidades;
 
-import java.awt.Image;
-import java.awt.Rectangle;
-import javax.swing.ImageIcon;
+import java.awt.Graphics2D;
+import java.awt.Color;
+import javax.imageio.ImageIO;
 
-public class Enemy {
-    private int x, y;
-    private int dx, dy;
-    private Image imagem;
-    private int largura, altura;
-    private boolean visivel;
+public class Enemy extends Entity {
+
     private EnemyType type;
     private int health;
+    private int maxHealth;
     private int damage;
-    private int speed;
     private int score;
 
     public enum EnemyType {
@@ -21,46 +17,49 @@ public class Enemy {
         TIPO2
     }
 
-    // Construtor privado - só pode ser criado pelo Builder
     private Enemy(EnemyBuilder builder) {
-        this.x = builder.x;
-        this.y = builder.y;
+        super(builder.x, builder.y, builder.speed);
         this.type = builder.type;
         this.health = builder.health;
+        this.maxHealth = builder.health;
         this.damage = builder.damage;
-        this.speed = builder.speed;
         this.score = builder.score;
-        this.visivel = true;
-        this.dx = 0;
-        this.dy = 0;
         load();
     }
 
-    private void load() {
+    @Override
+    public void load() {
         String path = "";
         switch (type) {
             case TIPO1:
-                path = "src/res/personagem/phrEnemy1.png";
+                path = "/res/personagem/phrEnemy1.png";
                 break;
             case TIPO2:
-                path = "src/res/personagem/phrEnemy2.png";
+                path = "/res/personagem/phrEnemy2.png";
                 break;
         }
 
-        ImageIcon referencia = new ImageIcon(path);
-        imagem = referencia.getImage();
-        if (imagem != null) {
-            this.largura = imagem.getWidth(null);
-            this.altura = imagem.getHeight(null);
+        try {
+            sprite = ImageIO.read(getClass().getResourceAsStream(path));
+            width = sprite.getWidth();
+            height = sprite.getHeight();
+        } catch (Exception e) {
+            System.err.println("Erro ao carregar sprite do inimigo: " + path);
+            width = 32;
+            height = 32;
         }
     }
 
-    public void update(int playerX, int playerY) {
-        if (!visivel) return;
+    @Override
+    public void update() {
+        if (!visible) return;
+    }
 
-        // Movimento em direção ao jogador
-        int deltaX = playerX - x;
-        int deltaY = playerY - y;
+    public void update(int targetX, int targetY) {
+        if (!visible) return;
+
+        int deltaX = targetX - x;
+        int deltaY = targetY - y;
 
         double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
@@ -76,42 +75,41 @@ public class Enemy {
     public void takeDamage(int amount) {
         health -= amount;
         if (health <= 0) {
-            visivel = false;
+            health = 0;
+            visible = false;
         }
     }
 
-    public Rectangle getBounds() {
-        return new Rectangle(x, y, largura, altura);
+    @Override
+    public void draw(Graphics2D g2) {
+        super.draw(g2);
+
+        if (visible) {
+            g2.setColor(Color.RED);
+            g2.fillRect(x, y - 5, width, 3);
+            g2.setColor(Color.GREEN);
+            int healthWidth = (int) (width * ((float) health / maxHealth));
+            g2.fillRect(x, y - 5, healthWidth, 3);
+        }
     }
 
-    // Getters
-    public int getX() { return x; }
-    public int getY() { return y; }
-    public int getDx() { return dx; }
-    public int getDy() { return dy; }
-    public Image getImagem() { return imagem; }
-    public int getLargura() { return largura; }
-    public int getAltura() { return altura; }
-    public boolean isVisivel() { return visivel; }
     public EnemyType getType() { return type; }
     public int getHealth() { return health; }
     public int getDamage() { return damage; }
-    public int getSpeed() { return speed; }
     public int getScore() { return score; }
 
-    // Setters
-    public void setX(int x) { this.x = x; }
-    public void setY(int y) { this.y = y; }
-    public void setVisivel(boolean visivel) { this.visivel = visivel; }
+    public boolean isVisivel() { return visible; }
+    public void setVisivel(boolean visible) { this.visible = visible; }
 
-    // Builder Pattern
+    public int getLargura() { return width; }
+    public int getAltura() { return height; }
+    public java.awt.image.BufferedImage getImagem() { return sprite; }
+
     public static class EnemyBuilder {
-        // Parâmetros obrigatórios
         private final int x;
         private final int y;
         private final EnemyType type;
 
-        // Parâmetros opcionais com valores padrão
         private int health = 100;
         private int damage = 10;
         private int speed = 1;

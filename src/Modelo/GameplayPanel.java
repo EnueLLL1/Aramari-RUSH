@@ -1,6 +1,7 @@
 package Modelo;
 
 import AramariRUSH.Container;
+import Modelo.Entidades.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private int score = 0;
 
+    private boolean debugMode = false;
+
     private ArrayList<Enemy> enemies;
     private ArrayList<Projectile> projectiles;
     private ArrayList<Collectible> collectibles;
@@ -46,13 +49,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private JButton btnVoltarMenu;
     private Container containerRef;
 
-    private Rectangle playerBounds;
-    private Rectangle projBounds;
-
     public GameplayPanel(Container container) {
         this.containerRef = container;
 
-        setPreferredSize(new Dimension(screenWidth, screenHeight));
         setFocusable(true);
         setDoubleBuffered(true);
         setBackground(Color.BLACK);
@@ -66,14 +65,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
         spawnTimer = new Timer(3000, e -> spawnDiamond());
         enemySpawnTimer = new Timer(5000, e -> spawnEnemy());
 
-        player = new Player();
-        player.load();
+        player = new Player(400, 400, 3);
         projectiles = new ArrayList<>();
         collectibles = new ArrayList<>();
         enemies = new ArrayList<>();
-
-        playerBounds = new Rectangle();
-        projBounds = new Rectangle();
 
         scoreStrategy = new CommonScoreStrategy();
 
@@ -163,6 +158,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         player.setX(400);
         player.setY(400);
+        player.enableAllMovement();
 
         btnJogarNovamente.setVisible(false);
         btnVoltarMenu.setVisible(false);
@@ -197,9 +193,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void spawnDiamond() {
-        if (!isStarted || isGameOver) {
-            return;
-        }
+        if (!isStarted || isGameOver) return;
 
         int x, y;
         int maxAttempts = 20;
@@ -228,9 +222,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void spawnEnemy() {
-        if (!isStarted || isGameOver) {
-            return;
-        }
+        if (!isStarted || isGameOver) return;
 
         int x, y;
         int maxAttempts = 20;
@@ -248,14 +240,12 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void checkCollisions() {
-        playerBounds.setBounds(player.getX(), player.getY(), player.getLargura(), player.getAltura());
-
         Iterator<Collectible> it = collectibles.iterator();
         while (it.hasNext()) {
             Collectible c = it.next();
-            if (c.isVisivel() && playerBounds.intersects(c.getBounds())) {
+            if (c.isVisible() && player.intersects(c)) {
                 score += scoreStrategy.calculateScore(c);
-                c.setVisivel(false);
+                c.setVisible(false);
                 it.remove();
             }
         }
@@ -266,17 +256,16 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         while (projIt.hasNext()) {
             Projectile proj = projIt.next();
-            projBounds.setBounds(proj.getX(), proj.getY(), proj.getLargura(), proj.getAltura());
 
             Iterator<Enemy> enemyIt = enemies.iterator();
             while (enemyIt.hasNext()) {
                 Enemy enemy = enemyIt.next();
 
-                if (enemy.isVisivel() && projBounds.intersects(enemy.getBounds())) {
+                if (enemy.isVisible() && proj.intersects(enemy)) {
                     enemy.takeDamage(50);
                     projIt.remove();
 
-                    if (!enemy.isVisivel()) {
+                    if (!enemy.isVisible()) {
                         score += enemy.getScore();
                         enemyIt.remove();
                     }
@@ -288,10 +277,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void checkPlayerEnemyCollisions() {
-        playerBounds.setBounds(player.getX(), player.getY(), player.getLargura(), player.getAltura());
-
         for (Enemy enemy : enemies) {
-            if (enemy.isVisivel() && playerBounds.intersects(enemy.getBounds())) {
+            if (enemy.isVisible() && player.intersects(enemy)) {
                 isGameOver = true;
                 setStarted(false);
                 countdownTimer.stop();
@@ -311,8 +298,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int hitboxMargin = 3;
         int hitboxX = player.getX() + hitboxMargin;
         int hitboxY = player.getY() + hitboxMargin;
-        int hitboxWidth = player.getLargura() - (hitboxMargin << 1);
-        int hitboxHeight = player.getAltura() - (hitboxMargin << 1);
+        int hitboxWidth = player.getWidth() - (hitboxMargin << 1);
+        int hitboxHeight = player.getHeight() - (hitboxMargin << 1);
 
         int leftCol = hitboxX / tileSize;
         int rightCol = (hitboxX + hitboxWidth) / tileSize;
@@ -322,6 +309,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
         if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
             return true;
         }
+
+        if (leftCol < 0) leftCol = 0;
+        if (rightCol >= maxScreenCol) rightCol = maxScreenCol - 1;
+        if (topRow < 0) topRow = 0;
+        if (bottomRow >= maxScreenRow) bottomRow = maxScreenRow - 1;
 
         int tileNum1 = tileM.mapTileNum[leftCol][topRow];
         int tileNum2 = tileM.mapTileNum[rightCol][topRow];
@@ -336,9 +328,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private boolean checkProjectileTileCollision(Projectile p) {
         int leftCol = p.getX() / tileSize;
-        int rightCol = (p.getX() + p.getLargura()) / tileSize;
+        int rightCol = (p.getX() + p.getWidth()) / tileSize;
         int topRow = p.getY() / tileSize;
-        int bottomRow = (p.getY() + p.getAltura()) / tileSize;
+        int bottomRow = (p.getY() + p.getHeight()) / tileSize;
 
         if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
             return true;
@@ -424,9 +416,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         graficos.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        if (player.getImagem() != null) {
-            graficos.drawImage(player.getImagem(), player.getX(), player.getY(), this);
-        }
+        player.draw(graficos);
 
         for (int i = 0; i < projectiles.size(); i++) {
             Projectile projectile = projectiles.get(i);
@@ -437,22 +427,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         for (int i = 0; i < collectibles.size(); i++) {
             Collectible collectible = collectibles.get(i);
-            if (collectible.isVisivel() && collectible.getImagem() != null) {
+            if (collectible.isVisible() && collectible.getImagem() != null) {
                 graficos.drawImage(collectible.getImagem(), collectible.getX(), collectible.getY(), this);
             }
         }
 
         for (int i = 0; i < enemies.size(); i++) {
-            Enemy enemy = enemies.get(i);
-            if (enemy.isVisivel() && enemy.getImagem() != null) {
-                graficos.drawImage(enemy.getImagem(), enemy.getX(), enemy.getY(), this);
-
-                graficos.setColor(Color.RED);
-                graficos.fillRect(enemy.getX(), enemy.getY() - 5, enemy.getLargura(), 3);
-                graficos.setColor(Color.GREEN);
-                int healthWidth = (int) (enemy.getLargura() * (enemy.getHealth() / 100.0));
-                graficos.fillRect(enemy.getX(), enemy.getY() - 5, healthWidth, 3);
-            }
+            enemies.get(i).draw(graficos);
         }
 
         if (isGameOver) {
@@ -477,6 +458,38 @@ public class GameplayPanel extends JPanel implements ActionListener {
         g.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
         drawFPS(graficos);
 
+        if (debugMode) {
+            // Player - vermelho
+            g.setColor(new Color(255, 0, 0, 160));
+            g.drawRect(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+
+            // Inimigos - verde
+            g.setColor(new Color(0, 255, 0, 160));
+            for (Enemy enemy : enemies) {
+                if (enemy.isVisible()) {
+                    g.drawRect(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight());
+                }
+            }
+
+            // Tiles sólidos - azul translúcido
+            g.setColor(new Color(0, 0, 255, 60));
+            for (int col = 0; col < maxScreenCol; col++) {
+                for (int row = 0; row < maxScreenRow; row++) {
+                    int tileNum = tileM.mapTileNum[col][row];
+                    if (tileM.tile[tileNum].collision) {
+                        int drawX = col * tileSize;
+                        int drawY = row * tileSize;
+                        g.fillRect(drawX, drawY, tileSize, tileSize);
+                    }
+                }
+            }
+
+            // Texto no canto
+            g.setColor(Color.YELLOW);
+            g.setFont(new Font("Arial", Font.BOLD, 12));
+            g.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
+        }
+
         Toolkit.getDefaultToolkit().sync();
     }
 
@@ -496,10 +509,22 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
             player.update();
 
+                // Impede o jogador de sair da tela (fix para topo e esquerda)
+            if (player.getX() < 0) player.setX(0);
+            if (player.getY() < 0) player.setY(0);
+
+            // Impede o jogador de sair pela direita e parte inferior
+            if (player.getX() + player.getWidth() > screenWidth)
+                player.setX(screenWidth - player.getWidth());
+            if (player.getY() + player.getHeight() > screenHeight)
+                player.setY(screenHeight - player.getHeight());
+
             if (checkPlayerTileCollision()) {
                 player.setX(oldX);
                 player.setY(oldY);
+                player.stopMovement();
             }
+
 
             Iterator<Projectile> it = projectiles.iterator();
             while (it.hasNext()) {
@@ -517,14 +542,14 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
             for (int i = 0; i < enemies.size(); i++) {
                 Enemy enemy = enemies.get(i);
-                if (enemy.isVisivel()) {
+                if (enemy.isVisible()) {
                     int oldEnemyX = enemy.getX();
                     int oldEnemyY = enemy.getY();
 
                     enemy.update(player.getX(), player.getY());
 
                     if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
-                            enemy.getLargura(), enemy.getAltura())) {
+                            enemy.getWidth(), enemy.getHeight())) {
                         enemy.setX(oldEnemyX);
                         enemy.setY(oldEnemyY);
                     }
@@ -547,6 +572,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
         public void keyPressed(KeyEvent e) {
 
             int codigo = e.getKeyCode();
+
+            if (codigo == KeyEvent.VK_F3) {
+                debugMode = !debugMode;
+                System.out.println("Debug mode: " + (debugMode ? "ON" : "OFF"));
+                return;
+            }
+
             if (codigo == KeyEvent.VK_SPACE) {
                 int projDx = player.getPdx() != 0 ? player.getPdx() : player.getLastPdx();
                 int projDy = player.getPdy() != 0 ? player.getPdy() : player.getLastPdy();
@@ -560,8 +592,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 if (!apertinho) {
                     apertinho = true;
                     projectiles.add(new Projectile(
-                            player.getX() + (player.getLargura() / 2),
-                            player.getY() + (player.getAltura() / 2),
+                            player.getX() + (player.getWidth() / 2),
+                            player.getY() + (player.getHeight() / 2),
                             projDx,
                             projDy
                     ));
