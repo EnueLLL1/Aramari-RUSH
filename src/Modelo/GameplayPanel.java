@@ -1,7 +1,13 @@
 package Modelo;
 
 import AramariRUSH.Container;
-import Modelo.Entidades.*;
+import Modelo.Entidades.Collectible;
+import Modelo.Entidades.Enemy;
+import Modelo.Entidades.EnemyFactory;
+import Modelo.Entidades.Player;
+import Modelo.Entidades.Projectile;
+import Modelo.Entidades.Collectible.DiamondType;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -25,9 +31,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private int fpsCounter = 0;
     private int currentFps = 0;
 
-    public final int tileSize = 16;
-    public final int maxScreenCol = 50;
-    public final int maxScreenRow = 50;
+    public final int tileSize = 32;
+    public final int maxScreenCol = 25;
+    public final int maxScreenRow = 25;
     public final int screenWidth = tileSize * maxScreenCol;
     public final int screenHeight = tileSize * maxScreenRow;
     TileManager tileM = new TileManager(this);
