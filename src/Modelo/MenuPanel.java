@@ -37,7 +37,7 @@ public class MenuPanel extends JPanel {
         btnJogar = new JButton();
         btnSair = new JButton();
 
-        // Estiliza os botões inicialmente
+        // Estiliza os botões com tamanho fixo de 200x60
         estilizarBotao(btnJogar, spriteJogar);
         estilizarBotao(btnSair, spriteSair);
 
@@ -60,12 +60,13 @@ public class MenuPanel extends JPanel {
         });
 
         // Posicionamento dos botões
-        gbc.insets = new Insets(30, 20, 30, 20);
+        gbc.insets = new Insets(380, 20, 15, 20); // Margem superior maior para não sobrepor o título
         gbc.fill = GridBagConstraints.NONE;
 
         gbc.gridy = 0;
         add(btnJogar, gbc);
 
+        gbc.insets = new Insets(15, 20, 15, 20); // Espaçamento normal entre os botões
         gbc.gridy = 1;
         add(btnSair, gbc);
     }
@@ -77,33 +78,35 @@ public class MenuPanel extends JPanel {
         botao.setFocusPainted(false);
         botao.setOpaque(false);
 
-        // Ícone inicial
+        // Ícone com tamanho fixo de 200x60
         if (sprite != null) {
             ImageIcon scaledIcon = new ImageIcon(sprite.getScaledInstance(200, 60, Image.SCALE_SMOOTH));
             botao.setIcon(scaledIcon);
+            botao.setPreferredSize(new Dimension(200, 60));
         }
-    }
 
-    // Redimensiona os botões conforme o tamanho do painel
-    @Override
-    public void doLayout() {
-        super.doLayout();
-        int panelW = getWidth();
-        int panelH = getHeight();
+        // Adiciona efeito hover (inchaço)
+        botao.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (sprite != null) {
+                    // Aumenta 10% no hover (220x66)
+                    ImageIcon hoverIcon = new ImageIcon(sprite.getScaledInstance(220, 66, Image.SCALE_SMOOTH));
+                    botao.setIcon(hoverIcon);
+                }
+                botao.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
 
-        int larguraBtn = panelW / 4;  // 1/4 da largura do painel
-        int alturaBtn = panelH / 10;  // 1/10 da altura do painel
-
-        redimensionarBotao(btnJogar, spriteJogar, larguraBtn, alturaBtn);
-        redimensionarBotao(btnSair, spriteSair, larguraBtn, alturaBtn);
-    }
-
-    private void redimensionarBotao(JButton botao, Image sprite, int largura, int altura) {
-        if (sprite != null && largura > 0 && altura > 0) {
-            ImageIcon scaledIcon = new ImageIcon(sprite.getScaledInstance(largura, altura, Image.SCALE_SMOOTH));
-            botao.setIcon(scaledIcon);
-            botao.setPreferredSize(new Dimension(largura, altura));
-        }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                if (sprite != null) {
+                    // Volta ao tamanho normal (200x60)
+                    ImageIcon normalIcon = new ImageIcon(sprite.getScaledInstance(200, 60, Image.SCALE_SMOOTH));
+                    botao.setIcon(normalIcon);
+                }
+                botao.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            }
+        });
     }
 
     @Override
@@ -146,15 +149,15 @@ public class MenuPanel extends JPanel {
             g2.fillRect(0, 0, panelW, panelH);
         }
 
-        // Título responsivo
+        // Título com tamanho fixo de 400x300
         if (spriteTitulo != null) {
-            int targetW = panelW / 3;   // 1/3 da largura da tela
-            int targetH = panelH / 6;   // proporcional à altura
+            int tituloW = 400;
+            int tituloH = 300;
 
-            int x = (panelW - targetW) / 2; // centraliza
+            int x = (panelW - tituloW) / 2; // centraliza horizontalmente
             int y = panelH / 10;            // margem superior
 
-            g2.drawImage(spriteTitulo, x, y, targetW, targetH, this);
+            g2.drawImage(spriteTitulo, x, y, tituloW, tituloH, this);
         }
 
         g2.dispose();
