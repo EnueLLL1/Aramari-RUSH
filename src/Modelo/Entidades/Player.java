@@ -28,6 +28,13 @@ public class Player extends Entity {
     private int spriteNum = 1;
     private final int SPRITE_ANIMATION_SPEED = 10;
 
+    // Sistema de vidas
+    private int health = 3;
+    private int maxHealth = 3;
+    private boolean invulnerable = false;
+    private int invulnerabilityTimer = 0;
+    private final int INVULNERABILITY_DURATION = 120; // 2 segundos (60 FPS)
+
     public Player(int x, int y, int speed) {
         super(x, y, speed);
         this.direction = "down";
@@ -110,12 +117,18 @@ public class Player extends Entity {
             pdy = dy;
         }
 
-
-
         if (!upPressed) canMoveUp = true;
         if (!downPressed) canMoveDown = true;
         if (!leftPressed) canMoveLeft = true;
         if (!rightPressed) canMoveRight = true;
+
+        // Atualiza invulnerabilidade
+        if (invulnerable) {
+            invulnerabilityTimer--;
+            if (invulnerabilityTimer <= 0) {
+                invulnerable = false;
+            }
+        }
 
         updateAnimation();
     }
@@ -171,14 +184,40 @@ public class Player extends Entity {
                 };
                 break;
         }
-
     }
 
     @Override
     public void draw(Graphics2D g2) {
         if (sprite != null && visible) {
-            g2.drawImage(sprite, x, y, null);
+            // Efeito de piscar quando invulnerável
+            if (!invulnerable || (invulnerabilityTimer / 5) % 2 == 0) {
+                g2.drawImage(sprite, x, y, null);
+            }
         }
+    }
+
+    public void takeDamage(int damage) {
+        if (!invulnerable && health > 0) {
+            health -= damage;
+            if (health < 0) health = 0;
+            
+            invulnerable = true;
+            invulnerabilityTimer = INVULNERABILITY_DURATION;
+            
+            // TODO: Adicionar som de dano aqui
+            // SoundManager.playSound("damage");
+        }
+    }
+
+    public void heal(int amount) {
+        health += amount;
+        if (health > maxHealth) health = maxHealth;
+    }
+
+    public void resetHealth() {
+        health = maxHealth;
+        invulnerable = false;
+        invulnerabilityTimer = 0;
     }
 
     public void keyPressed(KeyEvent e) {
@@ -234,6 +273,9 @@ public class Player extends Entity {
     public int getLastPdy() { return lastPdy; }
     public String getDirection() { return direction; }
     public boolean isMoving() { return moving; }
+    public int getHealth() { return health; }
+    public int getMaxHealth() { return maxHealth; }
+    public boolean isInvulnerable() { return invulnerable; }
 
     public void setPdx(int pdx) { this.pdx = pdx; }
     public void setPdy(int pdy) { this.pdy = pdy; }
