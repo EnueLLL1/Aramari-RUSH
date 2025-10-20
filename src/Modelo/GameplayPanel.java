@@ -9,6 +9,7 @@ import Modelo.Entidades.Projectile;
 import Modelo.UI.GameOverScreen;
 import Modelo.UI.Heart;
 import Modelo.UI.ScreenShake;
+import Modelo.UI.WinScreen;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private int timeLeft = 120;
     private boolean isGameOver = false;
+    private boolean isWin = false;
     private boolean isStarted = false;
 
     private long lastFpsTime = System.nanoTime();
@@ -56,6 +58,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private ScoreStrategy scoreStrategy;
 
     private GameOverScreen gameOverScreen;
+    private WinScreen winScreen;
     private Container containerRef;
 
     public GameplayPanel(Container container) {
@@ -72,7 +75,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         countdownTimer = new Timer(1000, e -> updateTime());
         spawnTimer = new Timer(3000, e -> spawnDiamond());
-        enemySpawnTimer = new Timer(5000, e -> spawnEnemy());
+        enemySpawnTimer = new Timer(3000, e -> spawnEnemy());
 
         player = new Player(400, 400, 3);
         projectiles = new ArrayList<>();
@@ -94,6 +97,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         enemySpawnTimer.start();
 
         gameOverScreen = new GameOverScreen(container, this);
+        winScreen = new WinScreen(container, this);
     }
 
     private void initializeHearts() {
@@ -117,6 +121,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     public void reiniciarJogo() {
         isGameOver = false;
+        isWin = false;
         isStarted = true;
         score = 0;
         timeLeft = 120;
@@ -133,6 +138,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         initializeHearts();
 
         gameOverScreen.hide();
+        winScreen.hide();
 
         gameTimer.restart();
         countdownTimer.restart();
@@ -149,8 +155,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
         enemySpawnTimer.stop();
 
         gameOverScreen.hide();
+        winScreen.hide();
 
         isGameOver = false;
+        isWin = false;
         isStarted = false;
         score = 0;
         timeLeft = 120;
@@ -163,7 +171,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void spawnDiamond() {
-        if (!isStarted || isGameOver) return;
+        if (!isStarted || isGameOver || isWin) return;
 
         int x, y;
         int maxAttempts = 20;
@@ -192,7 +200,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void spawnEnemy() {
-        if (!isStarted || isGameOver) return;
+        if (!isStarted || isGameOver || isWin) return;
 
         int x, y;
         int maxAttempts = 20;
@@ -254,15 +262,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 // Inicia o screen shake
                 screenShake.startShake(5, 15);
                 
-                // TODO: Adicionar som de dano aqui
-                // SoundManager.playSound("player_damage");
-                
                 if (player.getHealth() <= 0) {
                     isGameOver = true;
                     setStarted(false);
                     countdownTimer.stop();
                     gameTimer.stop();
                     enemySpawnTimer.stop();
+                    spawnTimer.stop();
 
                     gameOverScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
                 }
@@ -372,12 +378,15 @@ public class GameplayPanel extends JPanel implements ActionListener {
             if (timeLeft > 0) {
                 timeLeft--;
             } else {
-                isGameOver = true;
+                // Tempo acabou - jogador venceu!
+                isWin = true;
                 setStarted(false);
                 countdownTimer.stop();
                 gameTimer.stop();
+                spawnTimer.stop();
+                enemySpawnTimer.stop();
 
-                gameOverScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
+                winScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
             }
         }
     }
@@ -425,6 +434,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         if (isGameOver) {
             gameOverScreen.draw(graficos, getWidth(), getHeight());
+            return;
+        }
+        
+        if (isWin) {
+            winScreen.draw(graficos, getWidth(), getHeight());
             return;
         }
 
@@ -485,7 +499,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
 
-        if (isStarted && !isGameOver) {
+        if (isStarted && !isGameOver && !isWin) {
 
             int oldX = player.getX();
             int oldY = player.getY();
