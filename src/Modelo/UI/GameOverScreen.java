@@ -1,129 +1,138 @@
 package Modelo.UI;
 
+import AramariRUSH.Container;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 
-import AramariRUSH.Container;
-
 public class GameOverScreen {
     
     private Image spriteGameOver;
-    private JButton btnJogarNovamente;
-    private JButton btnVoltarMenu;
+    private Image spriteJogarNovamente;
+    private Image spriteSair;
     private boolean isVisible;
     private int score;
     private Container containerRef;
     private JPanel parentPanel;
+    
+    // Áreas clicáveis dos botões
+    private Rectangle btnJogarNovamenteRect;
+    private Rectangle btnSairRect;
+    
+    // Callbacks
+    private Runnable onRestart;
+    private Runnable onBackToMenu;
+    
+    // Estados de hover
+    private boolean hoverJogarNovamente;
+    private boolean hoverSair;
     
     public GameOverScreen(Container container, JPanel parent) {
         this.containerRef = container;
         this.parentPanel = parent;
         this.isVisible = false;
         this.score = 0;
+        this.hoverJogarNovamente = false;
+        this.hoverSair = false;
         
-        // Carrega o sprite do Game Over
+        // Carrega os sprites
         ImageIcon gameOverIcon = new ImageIcon("src\\res\\gameover_sprite.png");
         spriteGameOver = gameOverIcon.getImage();
         
-        criarBotoes();
+        ImageIcon jogarNovamenteIcon = new ImageIcon("src\\res\\jogardenovo_sprite.png");
+        spriteJogarNovamente = jogarNovamenteIcon.getImage();
+        
+        ImageIcon sairIcon = new ImageIcon("src\\res\\sair_sprite.png");
+        spriteSair = sairIcon.getImage();
+        
+        configurarMouseListener();
     }
     
-    private void criarBotoes() {
-        btnJogarNovamente = new JButton("Jogar Novamente");
-        btnJogarNovamente.setFont(new Font("Arial", Font.BOLD, 20));
-        btnJogarNovamente.setFocusable(false);
-        btnJogarNovamente.setVisible(false);
-        btnJogarNovamente.setBackground(new Color(0, 200, 0));
-        btnJogarNovamente.setForeground(Color.WHITE);
-        btnJogarNovamente.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
-        btnJogarNovamente.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        btnJogarNovamente.addMouseListener(new MouseAdapter() {
+    private void configurarMouseListener() {
+        parentPanel.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseEntered(MouseEvent e) {
-                btnJogarNovamente.setBackground(new Color(0, 255, 0));
-            }
-            
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btnJogarNovamente.setBackground(new Color(0, 200, 0));
-            }
-        });
-        
-        btnVoltarMenu = new JButton("Voltar ao Menu");
-        btnVoltarMenu.setFont(new Font("Arial", Font.BOLD, 20));
-        btnVoltarMenu.setFocusable(false);
-        btnVoltarMenu.setVisible(false);
-        btnVoltarMenu.setBackground(new Color(200, 0, 0));
-        btnVoltarMenu.setForeground(Color.WHITE);
-        btnVoltarMenu.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
-        btnVoltarMenu.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        btnVoltarMenu.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                btnVoltarMenu.setBackground(new Color(255, 0, 0));
-            }
-            
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btnVoltarMenu.setBackground(new Color(200, 0, 0));
+            public void mouseClicked(MouseEvent e) {
+                if (!isVisible) return;
+                
+                Point clickPoint = e.getPoint();
+                
+                if (btnJogarNovamenteRect != null && btnJogarNovamenteRect.contains(clickPoint)) {
+                    hide();
+                    if (onRestart != null) {
+                        onRestart.run();
+                    }
+                } else if (btnSairRect != null && btnSairRect.contains(clickPoint)) {
+                    hide();
+                    if (onBackToMenu != null) {
+                        onBackToMenu.run();
+                    }
+                }
             }
         });
         
-        parentPanel.add(btnJogarNovamente);
-        parentPanel.add(btnVoltarMenu);
+        parentPanel.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (!isVisible) return;
+                
+                Point mousePoint = e.getPoint();
+                
+                boolean wasHoverJogar = hoverJogarNovamente;
+                boolean wasHoverSair = hoverSair;
+                
+                hoverJogarNovamente = btnJogarNovamenteRect != null && btnJogarNovamenteRect.contains(mousePoint);
+                hoverSair = btnSairRect != null && btnSairRect.contains(mousePoint);
+                
+                // Muda o cursor
+                if (hoverJogarNovamente || hoverSair) {
+                    parentPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                } else {
+                    parentPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                }
+                
+                // Repinta se o estado de hover mudou
+                if (wasHoverJogar != hoverJogarNovamente || wasHoverSair != hoverSair) {
+                    parentPanel.repaint();
+                }
+            }
+        });
     }
     
     public void show(int finalScore, Runnable onRestart, Runnable onBackToMenu) {
         this.score = finalScore;
         this.isVisible = true;
+        this.onRestart = onRestart;
+        this.onBackToMenu = onBackToMenu;
         
-        posicionarBotoes();
-        btnJogarNovamente.setVisible(true);
-        btnVoltarMenu.setVisible(true);
-        
-        // Remove listeners anteriores
-        for (var listener : btnJogarNovamente.getActionListeners()) {
-            btnJogarNovamente.removeActionListener(listener);
-        }
-        for (var listener : btnVoltarMenu.getActionListeners()) {
-            btnVoltarMenu.removeActionListener(listener);
-        }
-        
-        // Adiciona novos listeners
-        btnJogarNovamente.addActionListener(e -> {
-            hide();
-            onRestart.run();
-        });
-        
-        btnVoltarMenu.addActionListener(e -> {
-            hide();
-            onBackToMenu.run();
-        });
+        calcularPosicoesBotoes();
     }
     
     public void hide() {
         this.isVisible = false;
-        btnJogarNovamente.setVisible(false);
-        btnVoltarMenu.setVisible(false);
+        this.hoverJogarNovamente = false;
+        this.hoverSair = false;
+        parentPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     }
     
-    private void posicionarBotoes() {
+    private void calcularPosicoesBotoes() {
         int btnWidth = 250;
-        int btnHeight = 60;
+        int btnHeight = 80;
         int centerX = parentPanel.getWidth() / 2 - btnWidth / 2;
         int centerY = parentPanel.getHeight() / 2 + 80;
         int spacing = 20;
         
-        btnJogarNovamente.setBounds(centerX, centerY, btnWidth, btnHeight);
-        btnVoltarMenu.setBounds(centerX, centerY + btnHeight + spacing, btnWidth, btnHeight);
+        btnJogarNovamenteRect = new Rectangle(centerX, centerY, btnWidth, btnHeight);
+        btnSairRect = new Rectangle(centerX, centerY + btnHeight + spacing, btnWidth, btnHeight);
     }
     
     public void draw(Graphics2D g2, int panelWidth, int panelHeight) {
         if (!isVisible) return;
+        
+        // Recalcula posições se necessário
+        if (btnJogarNovamenteRect == null) {
+            calcularPosicoesBotoes();
+        }
         
         // Desenha o sprite do Game Over (400x300)
         if (spriteGameOver != null) {
@@ -141,6 +150,36 @@ public class GameOverScreen {
         String scoreText = "Pontuação: " + score;
         int scoreWidth = g2.getFontMetrics().stringWidth(scoreText);
         g2.drawString(scoreText, panelWidth / 2 - scoreWidth / 2, panelHeight / 2 + 10);
+        
+        // Desenha o botão Jogar Novamente
+        if (spriteJogarNovamente != null && btnJogarNovamenteRect != null) {
+            // Efeito de hover (aumenta levemente o brilho)
+            if (hoverJogarNovamente) {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
+            }
+            g2.drawImage(spriteJogarNovamente, 
+                        btnJogarNovamenteRect.x, 
+                        btnJogarNovamenteRect.y, 
+                        btnJogarNovamenteRect.width, 
+                        btnJogarNovamenteRect.height, 
+                        null);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+        }
+        
+        // Desenha o botão Sair
+        if (spriteSair != null && btnSairRect != null) {
+            // Efeito de hover (aumenta levemente o brilho)
+            if (hoverSair) {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
+            }
+            g2.drawImage(spriteSair, 
+                        btnSairRect.x, 
+                        btnSairRect.y, 
+                        btnSairRect.width, 
+                        btnSairRect.height, 
+                        null);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+        }
     }
     
     public boolean isVisible() {
