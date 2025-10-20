@@ -1,9 +1,9 @@
 package Modelo.Entidades;
 
-import java.awt.Graphics2D;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
 
 public class Player extends Entity {
 
@@ -33,7 +33,7 @@ public class Player extends Entity {
     private int maxHealth = 3;
     private boolean invulnerable = false;
     private int invulnerabilityTimer = 0;
-    private final int INVULNERABILITY_DURATION = 120; // 2 segundos (60 FPS)
+    private final int INVULNERABILITY_DURATION = 30; // 0,5 segundos (60 FPS)
 
     public Player(int x, int y, int speed) {
         super(x, y, speed);

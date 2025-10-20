@@ -1,22 +1,22 @@
 package Modelo;
 
 import AramariRUSH.Container;
-import Modelo.Entidades.Collectible;
-import Modelo.Entidades.Enemy;
-import Modelo.Entidades.EnemyFactory;
-import Modelo.Entidades.Player;
-import Modelo.Entidades.Projectile;
+import Modelo.Entidades.*;
 import Modelo.UI.GameOverScreen;
 import Modelo.UI.Heart;
 import Modelo.UI.ScreenShake;
 import Modelo.UI.WinScreen;
+import tile.TileManager;
+
+import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
-import javax.swing.*;
-import tile.TileManager;
 
 public class GameplayPanel extends JPanel implements ActionListener {
 
@@ -240,7 +240,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 Enemy enemy = enemyIt.next();
 
                 if (enemy.isVisible() && proj.intersects(enemy)) {
-                    enemy.takeDamage(50);
+                    //Dano de 20
+                    enemy.takeDamage(20);
                     projIt.remove();
 
                     if (!enemy.isVisible()) {

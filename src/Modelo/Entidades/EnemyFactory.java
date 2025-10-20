@@ -25,7 +25,7 @@ public class EnemyFactory {
      */
     public static Enemy createStrongEnemy(int x, int y) {
         return new Enemy.EnemyBuilder(x, y, Enemy.EnemyType.TIPO2)
-                .health(150)
+                .health(80)
                 .damage(20)
                 .speed(1)
                 .score(150)
@@ -55,7 +55,7 @@ public class EnemyFactory {
      */
     public static Enemy createTankEnemy(int x, int y) {
         return new Enemy.EnemyBuilder(x, y, Enemy.EnemyType.TIPO2)
-                .health(300)
+                .health(120)
                 .damage(15)
                 .speed(1)
                 .score(75)
