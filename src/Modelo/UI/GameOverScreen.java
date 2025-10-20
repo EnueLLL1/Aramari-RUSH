@@ -1,10 +1,11 @@
 package Modelo.UI;
 
 import AramariRUSH.Container;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.*;
 
 public class GameOverScreen {
     
@@ -36,13 +37,13 @@ public class GameOverScreen {
         this.hoverJogarNovamente = false;
         this.hoverSair = false;
         
-        ImageIcon gameOverIcon = new ImageIcon("src\\res\\gameover_sprite.png");
+        ImageIcon gameOverIcon = new ImageIcon("src/res/gameover_sprite.png");
         spriteGameOver = gameOverIcon.getImage();
         
-        ImageIcon jogarNovamenteIcon = new ImageIcon("src\\res\\jogardenovo_sprite.png");
+        ImageIcon jogarNovamenteIcon = new ImageIcon("src/res/jogardenovo_sprite.png");
         spriteJogarNovamente = jogarNovamenteIcon.getImage();
         
-        ImageIcon sairIcon = new ImageIcon("src\\res\\sair_sprite.png");
+        ImageIcon sairIcon = new ImageIcon("src/res/sair_sprite.png");
         spriteSair = sairIcon.getImage();
         
         configurarMouseListener();

@@ -1,10 +1,11 @@
 package Modelo.UI;
 
 import AramariRUSH.Container;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.*;
 
 public class WinScreen {
     
@@ -37,13 +38,13 @@ public class WinScreen {
         this.hoverSair = false;
         
         
-        ImageIcon youWinIcon = new ImageIcon("src\\res\\youwin_sprite.png");
+        ImageIcon youWinIcon = new ImageIcon("src/res/youwin_sprite.png");
         spriteYouWin = youWinIcon.getImage();
         
-        ImageIcon jogarNovamenteIcon = new ImageIcon("src\\res\\jogardenovo_sprite.png");
+        ImageIcon jogarNovamenteIcon = new ImageIcon("src/res/jogardenovo_sprite.png");
         spriteJogarNovamente = jogarNovamenteIcon.getImage();
         
-        ImageIcon sairIcon = new ImageIcon("src\\res\\sair_sprite.png");
+        ImageIcon sairIcon = new ImageIcon("src/res/sair_sprite.png");
         spriteSair = sairIcon.getImage();
         
         configurarMouseListener();
