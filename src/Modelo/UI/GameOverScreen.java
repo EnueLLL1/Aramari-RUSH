@@ -16,15 +16,15 @@ public class GameOverScreen {
     private Container containerRef;
     private JPanel parentPanel;
     
-    // Áreas clicáveis dos botões
+    
     private Rectangle btnJogarNovamenteRect;
     private Rectangle btnSairRect;
     
-    // Callbacks
+    
     private Runnable onRestart;
     private Runnable onBackToMenu;
     
-    // Estados de hover
+    
     private boolean hoverJogarNovamente;
     private boolean hoverSair;
     
@@ -36,7 +36,6 @@ public class GameOverScreen {
         this.hoverJogarNovamente = false;
         this.hoverSair = false;
         
-        // Carrega os sprites
         ImageIcon gameOverIcon = new ImageIcon("src\\res\\gameover_sprite.png");
         spriteGameOver = gameOverIcon.getImage();
         
@@ -84,14 +83,14 @@ public class GameOverScreen {
                 hoverJogarNovamente = btnJogarNovamenteRect != null && btnJogarNovamenteRect.contains(mousePoint);
                 hoverSair = btnSairRect != null && btnSairRect.contains(mousePoint);
                 
-                // Muda o cursor
+                
                 if (hoverJogarNovamente || hoverSair) {
                     parentPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 } else {
                     parentPanel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
                 }
                 
-                // Repinta se o estado de hover mudou
+                
                 if (wasHoverJogar != hoverJogarNovamente || wasHoverSair != hoverSair) {
                     parentPanel.repaint();
                 }
@@ -129,12 +128,12 @@ public class GameOverScreen {
     public void draw(Graphics2D g2, int panelWidth, int panelHeight) {
         if (!isVisible) return;
         
-        // Recalcula posições se necessário
+        
         if (btnJogarNovamenteRect == null) {
             calcularPosicoesBotoes();
         }
         
-        // Desenha o sprite do Game Over (400x300)
+        
         if (spriteGameOver != null) {
             int spriteWidth = 400;
             int spriteHeight = 300;
@@ -144,16 +143,16 @@ public class GameOverScreen {
             g2.drawImage(spriteGameOver, x, y, spriteWidth, spriteHeight, null);
         }
         
-        // Desenha a pontuação
+        
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.BOLD, 32));
         String scoreText = "Pontuação: " + score;
         int scoreWidth = g2.getFontMetrics().stringWidth(scoreText);
         g2.drawString(scoreText, panelWidth / 2 - scoreWidth / 2, panelHeight / 2 + 10);
         
-        // Desenha o botão Jogar Novamente
+        
         if (spriteJogarNovamente != null && btnJogarNovamenteRect != null) {
-            // Efeito de hover (aumenta levemente o brilho)
+            
             if (hoverJogarNovamente) {
                 g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
             }
@@ -166,9 +165,9 @@ public class GameOverScreen {
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         }
         
-        // Desenha o botão Sair
+        
         if (spriteSair != null && btnSairRect != null) {
-            // Efeito de hover (aumenta levemente o brilho)
+            
             if (hoverSair) {
                 g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
             }
