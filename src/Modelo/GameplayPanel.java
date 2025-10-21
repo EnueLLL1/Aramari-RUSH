@@ -217,11 +217,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int x, y;
         switch (side) {
             case 0: // Esquerda
-                x = -32;
+                x = -32; // Move para fora da tela
                 y = screenCenterY + randomOffset;
                 break;
             case 1: // Direita
-                x = getWidth() + 32;
+                x = screenWidth - 32; // Alinha com a área de debug
                 y = screenCenterY + randomOffset;
                 break;
             case 2: // Topo
@@ -230,7 +230,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 break;
             default: // Base
                 x = screenCenterX + randomOffset;
-                y = getHeight() + 32;
+                y = screenHeight - 32; // Alinha com a área de debug
                 break;
         }
 
@@ -510,8 +510,27 @@ public class GameplayPanel extends JPanel implements ActionListener {
             g2.drawString("INVULNERÁVEL", 20, 95);
         }
 
+        // Desenha áreas de spawn de inimigos
+        g2.setColor(new Color(255, 0, 255, 80)); // Cor roxa semi-transparente
+        int spawnMargin = getHeight() / 6;
+        int screenCenterX = getWidth() >> 1;
+        int screenCenterY = getHeight() >> 1;
+
+        // Área de spawn esquerda
+        g2.fillRect(-32, screenCenterY - spawnMargin, 64, spawnMargin * 2);
+        
+        // Área de spawn direita
+        g2.fillRect(screenWidth - 32, screenCenterY - spawnMargin, 64, spawnMargin * 2);
+        
+        // Área de spawn superior
+        g2.fillRect(screenCenterX - spawnMargin, -32, spawnMargin * 2, 64);
+        
+        // Área de spawn inferior
+        g2.fillRect(screenCenterX - spawnMargin, screenHeight - 32, spawnMargin * 2, 64);
+
         g2.setColor(Color.YELLOW);
         g2.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
+        g2.drawString("Áreas de Spawn ON", 20, getHeight() - 35);
     }
 
     private String formatTime(int seconds) {
