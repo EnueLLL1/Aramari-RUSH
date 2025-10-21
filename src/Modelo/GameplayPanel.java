@@ -84,6 +84,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
         setupPanel();
         setupTimers();
         initializeHearts();
+        
+        // Adiciona o listener do mouse
+        addMouseListener(new MouseInputAdapter());
     }
 
     private void setupPanel() {
@@ -626,8 +629,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private class TecladoAdapter extends KeyAdapter {
-        private boolean spacePressed = false;
-
         @Override
         public void keyPressed(KeyEvent e) {
             int key = e.getKeyCode();
@@ -638,40 +639,47 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 return;
             }
 
-            if (key == KeyEvent.VK_SPACE && !spacePressed) {
-                spacePressed = true;
-                fireProjectile();
-            } else {
-                player.keyPressed(e);
-            }
+            player.keyPressed(e);
         }
 
         @Override
         public void keyReleased(KeyEvent e) {
-            if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-                spacePressed = false;
-            }
             player.keyRelease(e);
         }
+    }
 
-        private void fireProjectile() {
-            int dx = player.getPdx() != 0 ? player.getPdx() : player.getLastPdx();
-            int dy = player.getPdy() != 0 ? player.getPdy() : player.getLastPdy();
-
-            if (dx == 0 && dy == 0) {
-                dx = player.getLastPdx();
-                dy = player.getLastPdy();
-            }
-
-            player.setPdx(0);
-            player.setPdy(0);
-
-            int projX = player.getX() + (player.getWidth() >> 1);
-            int projY = player.getY() + (player.getHeight() >> 1);
-
-            projectiles.add(new Projectile(projX, projY, dx, dy));
+    private class MouseInputAdapter extends java.awt.event.MouseAdapter {
+        @Override
+        public void mousePressed(java.awt.event.MouseEvent e) {
+            if (!isStarted || isGameOver) return;
+            fireProjectile(e.getX(), e.getY());
         }
     }
+
+    private void fireProjectile(int mouseX, int mouseY) {
+        // Calcula o centro do jogador
+        int playerCenterX = player.getX() + (player.getWidth() >> 1);
+        int playerCenterY = player.getY() + (player.getHeight() >> 1);
+
+        // Calcula o vetor direção
+        double dx = mouseX - playerCenterX;
+        double dy = mouseY - playerCenterY;
+
+        // Normaliza o vetor
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length > 0) {
+            dx = dx / length;
+            dy = dy / length;
+        }
+
+        // Multiplica pela velocidade desejada
+        int projectileSpeed = 8;
+        dx *= projectileSpeed;
+        dy *= projectileSpeed;
+
+        projectiles.add(new Projectile(playerCenterX, playerCenterY, (int)dx, (int)dy));
+    }
+    
 
     public boolean isStarted() { return isStarted; }
     public void setStarted(boolean started) { this.isStarted = started; }

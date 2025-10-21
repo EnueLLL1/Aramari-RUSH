@@ -6,7 +6,7 @@ import javax.swing.ImageIcon;
 
 public class Projectile extends Entity {
 
-    private static final int PROJECTILE_SPEED = 6;
+    private static final int PROJECTILE_SPEED = 4;
     private static final int SPRITE_SIZE = 24; // Tamanho do sprite
     private int directionX, directionY;
     private Image image;
