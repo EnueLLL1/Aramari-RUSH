@@ -6,9 +6,6 @@ import Modelo.UI.GameOverScreen;
 import Modelo.UI.Heart;
 import Modelo.UI.ScreenShake;
 import Modelo.UI.WinScreen;
-import tile.TileManager;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -17,58 +14,87 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
+import javax.swing.*;
+import tile.TileManager;
 
 public class GameplayPanel extends JPanel implements ActionListener {
 
+    // Timers
     private Timer gameTimer;
     private Timer countdownTimer;
     private Timer spawnTimer;
     private Timer enemySpawnTimer;
 
+    // Game state
     private int timeLeft = 120;
     private boolean isGameOver = false;
     private boolean isWin = false;
     private boolean isStarted = false;
+    private int score = 0;
 
+    // FPS tracking
     private long lastFpsTime = System.nanoTime();
     private int fpsCounter = 0;
     private int currentFps = 0;
 
+    // Screen constants
     public final int tileSize = 32;
     public final int maxScreenCol = 25;
     public final int maxScreenRow = 25;
     public final int screenWidth = tileSize * maxScreenCol;
     public final int screenHeight = tileSize * maxScreenRow;
-    TileManager tileM = new TileManager(this);
 
-    private int score = 0;
+    // Managers
+    private final TileManager tileM;
+    private final ScreenShake screenShake;
+    private final Random rand;
 
+    // Game objects
+    private final Player player;
+    private final ArrayList<Enemy> enemies;
+    private final ArrayList<Projectile> projectiles;
+    private final ArrayList<Collectible> collectibles;
+    private final ArrayList<Heart> hearts;
+
+    // Strategy & UI
+    private final ScoreStrategy scoreStrategy;
+    private final GameOverScreen gameOverScreen;
+    private final WinScreen winScreen;
+    private final Container containerRef;
+
+    // Debug
     private boolean debugMode = false;
-
-    private ArrayList<Enemy> enemies;
-    private ArrayList<Projectile> projectiles;
-    private ArrayList<Collectible> collectibles;
-    private ArrayList<Heart> hearts;
-
-    private ScreenShake screenShake;
-
-    private Random rand = new Random();
-    private Player player;
-
-    private ScoreStrategy scoreStrategy;
-
-    private GameOverScreen gameOverScreen;
-    private WinScreen winScreen;
-    private Container containerRef;
 
     public GameplayPanel(Container container) {
         this.containerRef = container;
 
+        // Inicializa objetos finais
+        tileM = new TileManager(this);
+        screenShake = new ScreenShake();
+        rand = new Random();
+        player = new Player(400, 400, 3);
+        projectiles = new ArrayList<>();
+        collectibles = new ArrayList<>();
+        enemies = new ArrayList<>();
+        hearts = new ArrayList<>();
+        scoreStrategy = new CommonScoreStrategy();
+        gameOverScreen = new GameOverScreen(container, this);
+        winScreen = new WinScreen(container, this);
+
+        setupPanel();
+        setupTimers();
+        initializeHearts();
+    }
+
+    private void setupPanel() {
         setFocusable(true);
         setDoubleBuffered(true);
         setBackground(Color.BLACK);
         setLayout(null);
+        addKeyListener(new TecladoAdapter());
+    }
 
+    private void setupTimers() {
         gameTimer = new Timer(16, this);
         gameTimer.setCoalesce(true);
         gameTimer.setInitialDelay(0);
@@ -77,92 +103,76 @@ public class GameplayPanel extends JPanel implements ActionListener {
         spawnTimer = new Timer(3000, e -> spawnDiamond());
         enemySpawnTimer = new Timer(3000, e -> spawnEnemy());
 
-        player = new Player(400, 400, 3);
-        projectiles = new ArrayList<>();
-        collectibles = new ArrayList<>();
-        enemies = new ArrayList<>();
-        hearts = new ArrayList<>();
-        
-        screenShake = new ScreenShake();
-        
-        initializeHearts();
-
-        scoreStrategy = new CommonScoreStrategy();
-
-        addKeyListener(new TecladoAdapter());
-
         gameTimer.start();
         countdownTimer.start();
         spawnTimer.start();
         enemySpawnTimer.start();
-
-        gameOverScreen = new GameOverScreen(container, this);
-        winScreen = new WinScreen(container, this);
     }
 
     private void initializeHearts() {
         hearts.clear();
         int heartSpacing = 40;
-        int heartStartX = (screenWidth / 2) - (heartSpacing * player.getMaxHealth() / 2);
+        int heartStartX = (screenWidth >> 1) - (heartSpacing * player.getMaxHealth() >> 1);
         int heartY = 20;
 
         for (int i = 0; i < player.getMaxHealth(); i++) {
-            Heart heart = new Heart(heartStartX + (i * heartSpacing), heartY);
-            hearts.add(heart);
+            hearts.add(new Heart(heartStartX + (i * heartSpacing), heartY));
         }
     }
 
     private void updateHearts() {
-        for (int i = 0; i < hearts.size(); i++) {
-            hearts.get(i).update();
-            hearts.get(i).setVisible(i < player.getHealth());
+        int playerHealth = player.getHealth();
+        for (int i = 0, size = hearts.size(); i < size; i++) {
+            Heart heart = hearts.get(i);
+            heart.update();
+            heart.setVisible(i < playerHealth);
         }
     }
 
     public void reiniciarJogo() {
+        // Reset game state
         isGameOver = false;
         isWin = false;
         isStarted = true;
         score = 0;
         timeLeft = 120;
 
+        // Clear collections
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
 
+        // Reset player
         player.setX(400);
         player.setY(400);
         player.enableAllMovement();
         player.resetHealth();
-        
+
         initializeHearts();
 
+        // Hide screens
         gameOverScreen.hide();
         winScreen.hide();
 
-        gameTimer.restart();
-        countdownTimer.restart();
-        spawnTimer.restart();
-        enemySpawnTimer.restart();
-
+        // Restart timers
+        restartAllTimers();
         requestFocusInWindow();
     }
 
     private void voltarAoMenu() {
-        gameTimer.stop();
-        countdownTimer.stop();
-        spawnTimer.stop();
-        enemySpawnTimer.stop();
+        stopAllTimers();
 
         gameOverScreen.hide();
         winScreen.hide();
 
+        // Reset state
         isGameOver = false;
         isWin = false;
         isStarted = false;
         score = 0;
         timeLeft = 120;
 
+        // Clear collections
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
@@ -173,46 +183,56 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private void spawnDiamond() {
         if (!isStarted || isGameOver || isWin) return;
 
-        int x, y;
+        int x = 0, y = 0;
         int maxAttempts = 20;
         int attempts = 0;
+        boolean validPosition = false;
 
-        do {
-            x = rand.nextInt(maxScreenCol - 2) + 1;
-            y = rand.nextInt(maxScreenRow - 2) + 1;
-            x *= tileSize;
-            y *= tileSize;
+        // Procura posição válida
+        while (attempts < maxAttempts && !validPosition) {
+            x = (rand.nextInt(maxScreenCol - 2) + 1) * tileSize;
+            y = (rand.nextInt(maxScreenRow - 2) + 1) * tileSize;
+            validPosition = !checkTileCollisionAt(x, y, 32, 32);
             attempts++;
-        } while (attempts < maxAttempts && checkTileCollisionAt(x, y, 32, 32));
-
-        int chance = rand.nextInt(100);
-        Collectible.DiamondType type;
-
-        if (chance < 60) {
-            type = Collectible.DiamondType.COMUM;
-        } else if (chance < 90) {
-            type = Collectible.DiamondType.RARO;
-        } else {
-            type = Collectible.DiamondType.LENDARIO;
         }
+
+        // Determina tipo baseado em probabilidade
+        int chance = rand.nextInt(100);
+        Collectible.DiamondType type = chance < 60 ? Collectible.DiamondType.COMUM :
+                chance < 90 ? Collectible.DiamondType.RARO :
+                        Collectible.DiamondType.LENDARIO;
 
         collectibles.add(new Collectible(x, y, type));
     }
 
     private void spawnEnemy() {
-        if (!isStarted || isGameOver || isWin) return;
+        if (!isStarted || isGameOver) return;
+
+        int side = rand.nextInt(4);
+        int screenCenterX = getWidth() >> 1;
+        int screenCenterY = getHeight() >> 1;
+        int spawnMargin = getHeight() / 6;
+        int randomOffset = rand.nextInt(spawnMargin << 1) - spawnMargin;
 
         int x, y;
-        int maxAttempts = 20;
-        int attempts = 0;
-
-        do {
-            x = rand.nextInt(maxScreenCol - 2) + 1;
-            y = rand.nextInt(maxScreenRow - 2) + 1;
-            x *= tileSize;
-            y *= tileSize;
-            attempts++;
-        } while (attempts < maxAttempts && checkTileCollisionAt(x, y, 32, 32));
+        switch (side) {
+            case 0: // Esquerda
+                x = -32;
+                y = screenCenterY + randomOffset;
+                break;
+            case 1: // Direita
+                x = getWidth() + 32;
+                y = screenCenterY + randomOffset;
+                break;
+            case 2: // Topo
+                x = screenCenterX + randomOffset;
+                y = -32;
+                break;
+            default: // Base
+                x = screenCenterX + randomOffset;
+                y = getHeight() + 32;
+                break;
+        }
 
         enemies.add(EnemyFactory.createRandomEnemy(x, y));
     }
@@ -234,22 +254,21 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         while (projIt.hasNext()) {
             Projectile proj = projIt.next();
-
             Iterator<Enemy> enemyIt = enemies.iterator();
-            while (enemyIt.hasNext()) {
+            boolean hit = false;
+
+            while (enemyIt.hasNext() && !hit) {
                 Enemy enemy = enemyIt.next();
 
                 if (enemy.isVisible() && proj.intersects(enemy)) {
-                    //Dano de 20
                     enemy.takeDamage(20);
                     projIt.remove();
+                    hit = true;
 
                     if (!enemy.isVisible()) {
                         score += enemy.getScore();
                         enemyIt.remove();
                     }
-
-                    break;
                 }
             }
         }
@@ -259,21 +278,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
         for (Enemy enemy : enemies) {
             if (enemy.isVisible() && player.intersects(enemy)) {
                 player.takeDamage(1);
-                
-                // Inicia o screen shake
                 screenShake.startShake(5, 15);
-                
-                if (player.getHealth() <= 0) {
-                    isGameOver = true;
-                    setStarted(false);
-                    countdownTimer.stop();
-                    gameTimer.stop();
-                    enemySpawnTimer.stop();
-                    spawnTimer.stop();
 
-                    gameOverScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
+                if (player.getHealth() <= 0) {
+                    endGameAsLoss();
                 }
-                
                 break;
             }
         }
@@ -291,48 +300,26 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int topRow = hitboxY / tileSize;
         int bottomRow = (hitboxY + hitboxHeight) / tileSize;
 
+        // Bounds check
         if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
             return true;
         }
 
-        if (leftCol < 0) leftCol = 0;
-        if (rightCol >= maxScreenCol) rightCol = maxScreenCol - 1;
-        if (topRow < 0) topRow = 0;
-        if (bottomRow >= maxScreenRow) bottomRow = maxScreenRow - 1;
+        // Clamp to valid range
+        leftCol = Math.max(0, leftCol);
+        rightCol = Math.min(maxScreenCol - 1, rightCol);
+        topRow = Math.max(0, topRow);
+        bottomRow = Math.min(maxScreenRow - 1, bottomRow);
 
-        int tileNum1 = tileM.mapTileNum[leftCol][topRow];
-        int tileNum2 = tileM.mapTileNum[rightCol][topRow];
-        int tileNum3 = tileM.mapTileNum[leftCol][bottomRow];
-        int tileNum4 = tileM.mapTileNum[rightCol][bottomRow];
-
-        return tileM.tile[tileNum1].collision ||
-                tileM.tile[tileNum2].collision ||
-                tileM.tile[tileNum3].collision ||
-                tileM.tile[tileNum4].collision;
+        // Check corners only
+        return tileM.tile[tileM.mapTileNum[leftCol][topRow]].collision ||
+                tileM.tile[tileM.mapTileNum[rightCol][topRow]].collision ||
+                tileM.tile[tileM.mapTileNum[leftCol][bottomRow]].collision ||
+                tileM.tile[tileM.mapTileNum[rightCol][bottomRow]].collision;
     }
 
     private boolean checkProjectileTileCollision(Projectile p) {
-        int leftCol = p.getX() / tileSize;
-        int rightCol = (p.getX() + p.getWidth()) / tileSize;
-        int topRow = p.getY() / tileSize;
-        int bottomRow = (p.getY() + p.getHeight()) / tileSize;
-
-        if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
-            return true;
-        }
-
-        for (int col = leftCol; col <= rightCol; col++) {
-            for (int row = topRow; row <= bottomRow; row++) {
-                if (col >= 0 && col < maxScreenCol && row >= 0 && row < maxScreenRow) {
-                    int tileNum = tileM.mapTileNum[col][row];
-                    if (tileM.tile[tileNum].collision) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
+        return checkTileCollisionAt(p.getX(), p.getY(), p.getWidth(), p.getHeight());
     }
 
     private boolean checkTileCollisionAt(int x, int y, int width, int height) {
@@ -341,14 +328,15 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int topRow = y / tileSize;
         int bottomRow = (y + height) / tileSize;
 
+        // Bounds check
         if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
             return true;
         }
 
+        // Check all tiles in area
         for (int col = leftCol; col <= rightCol; col++) {
             for (int row = topRow; row <= bottomRow; row++) {
-                int tileNum = tileM.mapTileNum[col][row];
-                if (tileM.tile[tileNum].collision) {
+                if (tileM.tile[tileM.mapTileNum[col][row]].collision) {
                     return true;
                 }
             }
@@ -357,38 +345,54 @@ public class GameplayPanel extends JPanel implements ActionListener {
         return false;
     }
 
+    private void updateTime() {
+        if (!isStarted) return;
+
+        if (timeLeft > 0) {
+            timeLeft--;
+            return;
+        }
+
+        // Tempo acabou - vitória!
+        endGameAsWin();
+    }
+
+    private void endGameAsWin() {
+        isWin = true;
+        isStarted = false;
+        stopAllTimers();
+        winScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
+    }
+
+    private void endGameAsLoss() {
+        isGameOver = true;
+        isStarted = false;
+        stopAllTimers();
+        gameOverScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
+    }
+
+    private void stopAllTimers() {
+        countdownTimer.stop();
+        gameTimer.stop();
+        spawnTimer.stop();
+        enemySpawnTimer.stop();
+    }
+
+    private void restartAllTimers() {
+        gameTimer.restart();
+        countdownTimer.restart();
+        spawnTimer.restart();
+        enemySpawnTimer.restart();
+    }
+
     private void updateFPS() {
         fpsCounter++;
         long currentTime = System.nanoTime();
 
-        if (currentTime - lastFpsTime >= 1000000000L) {
+        if (currentTime - lastFpsTime >= 1_000_000_000L) {
             currentFps = fpsCounter;
             fpsCounter = 0;
             lastFpsTime = currentTime;
-        }
-    }
-
-    private void drawFPS(Graphics2D g2) {
-        g2.setColor(Color.YELLOW);
-        g2.setFont(new Font("Arial", Font.PLAIN, 12));
-        g2.drawString("FPS: " + currentFps, getWidth() - 70, 20);
-    }
-
-    private void updateTime() {
-        if (this.isStarted) {
-            if (timeLeft > 0) {
-                timeLeft--;
-            } else {
-                // Tempo acabou - jogador venceu!
-                isWin = true;
-                setStarted(false);
-                countdownTimer.stop();
-                gameTimer.stop();
-                spawnTimer.stop();
-                enemySpawnTimer.stop();
-
-                winScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
-            }
         }
     }
 
@@ -396,230 +400,260 @@ public class GameplayPanel extends JPanel implements ActionListener {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        Graphics2D graficos = (Graphics2D) g;
-        
-        // Aplica o screen shake
-        graficos.translate(screenShake.getOffsetX(), screenShake.getOffsetY());
+        Graphics2D g2 = (Graphics2D) g;
 
-        tileM.draw(graficos);
+        // Aplica screen shake
+        g2.translate(screenShake.getOffsetX(), screenShake.getOffsetY());
 
-        graficos.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Desenha cenário
+        tileM.draw(g2);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        player.draw(graficos);
+        // Desenha entidades
+        player.draw(g2);
+        drawProjectiles(g2);
+        drawCollectibles(g2);
+        drawEnemies(g2);
 
-        for (int i = 0; i < projectiles.size(); i++) {
-            Projectile projectile = projectiles.get(i);
-            if (projectile.getImagem() != null) {
-                graficos.drawImage(projectile.getImagem(), projectile.getX(), projectile.getY(), this);
-            }
-        }
+        // Remove translação para UI
+        g2.translate(-screenShake.getOffsetX(), -screenShake.getOffsetY());
 
-        for (int i = 0; i < collectibles.size(); i++) {
-            Collectible collectible = collectibles.get(i);
-            if (collectible.isVisible() && collectible.getImagem() != null) {
-                graficos.drawImage(collectible.getImagem(), collectible.getX(), collectible.getY(), this);
-            }
-        }
-
-        for (int i = 0; i < enemies.size(); i++) {
-            enemies.get(i).draw(graficos);
-        }
-        
-        // Remove a translação do shake antes de desenhar UI
-        graficos.translate(-screenShake.getOffsetX(), -screenShake.getOffsetY());
-
-        // Desenha os corações
-        for (Heart heart : hearts) {
-            heart.draw(graficos);
-        }
+        // Desenha UI
+        drawHearts(g2);
 
         if (isGameOver) {
-            gameOverScreen.draw(graficos, getWidth(), getHeight());
-            return;
-        }
-        
-        if (isWin) {
-            winScreen.draw(graficos, getWidth(), getHeight());
+            gameOverScreen.draw(g2, getWidth(), getHeight());
             return;
         }
 
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 18));
-        g.drawString("Pontuação: " + score, 20, 30);
-        g.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
-        drawFPS(graficos);
+        if (isWin) {
+            winScreen.draw(g2, getWidth(), getHeight());
+            return;
+        }
+
+        drawHUD(g2);
 
         if (debugMode) {
-            // Player - vermelho
-            g.setColor(new Color(255, 0, 0, 160));
-            g.drawRect(player.getX(), player.getY(), player.getWidth(), player.getHeight());
-
-            // Inimigos - verde
-            g.setColor(new Color(0, 255, 0, 160));
-            for (Enemy enemy : enemies) {
-                if (enemy.isVisible()) {
-                    g.drawRect(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight());
-                }
-            }
-
-            // Tiles sólidos - azul translúcido
-            g.setColor(new Color(0, 0, 255, 60));
-            for (int col = 0; col < maxScreenCol; col++) {
-                for (int row = 0; row < maxScreenRow; row++) {
-                    int tileNum = tileM.mapTileNum[col][row];
-                    if (tileM.tile[tileNum].collision) {
-                        int drawX = col * tileSize;
-                        int drawY = row * tileSize;
-                        g.fillRect(drawX, drawY, tileSize, tileSize);
-                    }
-                }
-            }
-
-            // Info de vida
-            g.setColor(Color.CYAN);
-            g.setFont(new Font("Arial", Font.BOLD, 12));
-            g.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 80);
-            if (player.isInvulnerable()) {
-                g.drawString("INVULNERÁVEL", 20, 95);
-            }
-
-            // Texto no canto
-            g.setColor(Color.YELLOW);
-            g.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
+            drawDebugInfo(g2);
         }
 
         Toolkit.getDefaultToolkit().sync();
     }
 
+    private void drawProjectiles(Graphics2D g2) {
+        for (Projectile p : projectiles) {
+            if (p.getImagem() != null) {
+                g2.drawImage(p.getImagem(), p.getX(), p.getY(), this);
+            }
+        }
+    }
+
+    private void drawCollectibles(Graphics2D g2) {
+        for (Collectible c : collectibles) {
+            if (c.isVisible() && c.getImagem() != null) {
+                g2.drawImage(c.getImagem(), c.getX(), c.getY(), this);
+            }
+        }
+    }
+
+    private void drawEnemies(Graphics2D g2) {
+        for (Enemy enemy : enemies) {
+            enemy.draw(g2);
+        }
+    }
+
+    private void drawHearts(Graphics2D g2) {
+        for (Heart heart : hearts) {
+            heart.draw(g2);
+        }
+    }
+
+    private void drawHUD(Graphics2D g2) {
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.drawString("Pontuação: " + score, 20, 30);
+        g2.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
+
+        g2.setColor(Color.YELLOW);
+        g2.setFont(new Font("Arial", Font.PLAIN, 12));
+        g2.drawString("FPS: " + currentFps, getWidth() - 70, 20);
+    }
+
+    private void drawDebugInfo(Graphics2D g2) {
+        // Player hitbox
+        g2.setColor(new Color(255, 0, 0, 160));
+        g2.drawRect(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+
+        // Enemy hitboxes
+        g2.setColor(new Color(0, 255, 0, 160));
+        for (Enemy enemy : enemies) {
+            if (enemy.isVisible()) {
+                g2.drawRect(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight());
+            }
+        }
+
+        // Collision tiles
+        g2.setColor(new Color(0, 0, 255, 60));
+        for (int col = 0; col < maxScreenCol; col++) {
+            for (int row = 0; row < maxScreenRow; row++) {
+                if (tileM.tile[tileM.mapTileNum[col][row]].collision) {
+                    g2.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+
+        // Player info
+        g2.setColor(Color.CYAN);
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 80);
+        if (player.isInvulnerable()) {
+            g2.drawString("INVULNERÁVEL", 20, 95);
+        }
+
+        g2.setColor(Color.YELLOW);
+        g2.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
+    }
+
     private String formatTime(int seconds) {
-        int min = seconds / 60;
-        int sec = seconds % 60;
-        return String.format("%02d:%02d", min, sec);
+        return String.format("%02d:%02d", seconds / 60, seconds % 60);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
         if (isStarted && !isGameOver && !isWin) {
-
-            int oldX = player.getX();
-            int oldY = player.getY();
-
-            player.update();
-
-            // Impede o jogador de sair da tela
-            if (player.getX() < 0) player.setX(0);
-            if (player.getY() < 0) player.setY(0);
-
-            if (player.getX() + player.getWidth() > screenWidth)
-                player.setX(screenWidth - player.getWidth());
-            if (player.getY() + player.getHeight() > screenHeight)
-                player.setY(screenHeight - player.getHeight());
-
-            if (checkPlayerTileCollision()) {
-                player.setX(oldX);
-                player.setY(oldY);
-                player.stopMovement();
-            }
-
-            Iterator<Projectile> it = projectiles.iterator();
-            while (it.hasNext()) {
-                Projectile p = it.next();
-                p.update();
-
-                if (checkProjectileTileCollision(p)) {
-                    it.remove();
-                    continue;
-                }
-                if (!p.isVisible()) {
-                    it.remove();
-                }
-            }
-
-            for (int i = 0; i < enemies.size(); i++) {
-                Enemy enemy = enemies.get(i);
-                if (enemy.isVisible()) {
-                    int oldEnemyX = enemy.getX();
-                    int oldEnemyY = enemy.getY();
-
-                    enemy.update(player.getX(), player.getY());
-
-                    if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
-                            enemy.getWidth(), enemy.getHeight())) {
-                        enemy.setX(oldEnemyX);
-                        enemy.setY(oldEnemyY);
-                    }
-                }
-            }
+            updatePlayer();
+            updateProjectiles();
+            updateEnemies();
 
             checkCollisions();
             checkProjectileEnemyCollisions();
             checkPlayerEnemyCollisions();
         }
-        
-        // Atualiza o screen shake
+
         screenShake.update();
-        
-        // Atualiza os corações
         updateHearts();
-        
         updateFPS();
         repaint();
     }
 
-    private class TecladoAdapter extends KeyAdapter {
+    private void updatePlayer() {
+        int oldX = player.getX();
+        int oldY = player.getY();
 
-        boolean apertinho = false;
+        player.update();
+
+        // Clamp to screen bounds
+        player.setX(Math.max(0, Math.min(player.getX(), screenWidth - player.getWidth())));
+        player.setY(Math.max(0, Math.min(player.getY(), screenHeight - player.getHeight())));
+
+        if (checkPlayerTileCollision()) {
+            player.setX(oldX);
+            player.setY(oldY);
+            player.stopMovement();
+        }
+    }
+
+    private void updateProjectiles() {
+        Iterator<Projectile> it = projectiles.iterator();
+        while (it.hasNext()) {
+            Projectile p = it.next();
+            p.update();
+
+            if (!p.isVisible() || checkProjectileTileCollision(p)) {
+                it.remove();
+            }
+        }
+    }
+
+    private void updateEnemies() {
+        int playerX = player.getX();
+        int playerY = player.getY();
+
+        for (Enemy enemy : enemies) {
+            if (!enemy.isVisible()) continue;
+
+            int oldX = enemy.getX();
+            int oldY = enemy.getY();
+
+            enemy.update(playerX, playerY);
+
+            if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
+                    enemy.getWidth(), enemy.getHeight())) {
+
+                // Reverte e sincroniza
+                enemy.setX(oldX);
+                enemy.setY(oldY);
+                enemy.syncPrecisePosition();
+
+                // Tenta X
+                enemy.tryMoveX(playerX);
+
+                if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
+                        enemy.getWidth(), enemy.getHeight())) {
+
+                    // Reverte X, tenta Y
+                    enemy.setX(oldX);
+                    enemy.syncPrecisePosition();
+                    enemy.tryMoveY(playerY);
+
+                    if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
+                            enemy.getWidth(), enemy.getHeight())) {
+                        enemy.setY(oldY);
+                        enemy.syncPrecisePosition();
+                    }
+                }
+            }
+        }
+    }
+
+    private class TecladoAdapter extends KeyAdapter {
+        private boolean spacePressed = false;
 
         @Override
         public void keyPressed(KeyEvent e) {
+            int key = e.getKeyCode();
 
-            int codigo = e.getKeyCode();
-
-            if (codigo == KeyEvent.VK_F3) {
+            if (key == KeyEvent.VK_F3) {
                 debugMode = !debugMode;
                 System.out.println("Debug mode: " + (debugMode ? "ON" : "OFF"));
                 return;
             }
 
-            if (codigo == KeyEvent.VK_SPACE) {
-                int projDx = player.getPdx() != 0 ? player.getPdx() : player.getLastPdx();
-                int projDy = player.getPdy() != 0 ? player.getPdy() : player.getLastPdy();
-
-                if (projDx == 0 && projDy == 0) {
-                    projDx = player.getLastPdx();
-                    projDy = player.getLastPdy();
-                }
-                player.setPdx(0);
-                player.setPdy(0);
-                if (!apertinho) {
-                    apertinho = true;
-                    projectiles.add(new Projectile(
-                            player.getX() + (player.getWidth() / 2),
-                            player.getY() + (player.getHeight() / 2),
-                            projDx,
-                            projDy
-                    ));
-                }
+            if (key == KeyEvent.VK_SPACE && !spacePressed) {
+                spacePressed = true;
+                fireProjectile();
             } else {
                 player.keyPressed(e);
             }
-
         }
 
         @Override
         public void keyReleased(KeyEvent e) {
+            if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                spacePressed = false;
+            }
             player.keyRelease(e);
-            apertinho = false;
+        }
+
+        private void fireProjectile() {
+            int dx = player.getPdx() != 0 ? player.getPdx() : player.getLastPdx();
+            int dy = player.getPdy() != 0 ? player.getPdy() : player.getLastPdy();
+
+            if (dx == 0 && dy == 0) {
+                dx = player.getLastPdx();
+                dy = player.getLastPdy();
+            }
+
+            player.setPdx(0);
+            player.setPdy(0);
+
+            int projX = player.getX() + (player.getWidth() >> 1);
+            int projY = player.getY() + (player.getHeight() >> 1);
+
+            projectiles.add(new Projectile(projX, projY, dx, dy));
         }
     }
 
-    public boolean isStarted() {
-        return isStarted;
-    }
-
-    public void setStarted(boolean isStarted) {
-        this.isStarted = isStarted;
-    }
-
+    public boolean isStarted() { return isStarted; }
+    public void setStarted(boolean started) { this.isStarted = started; }
 }
