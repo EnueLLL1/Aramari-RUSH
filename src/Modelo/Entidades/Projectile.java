@@ -6,17 +6,23 @@ import javax.swing.ImageIcon;
 
 public class Projectile extends Entity {
 
-    private static final int PROJECTILE_SPEED = 4;
-    private static final int SPRITE_SIZE = 24; // Tamanho do sprite
+    private static final int DEFAULT_SPEED = 4;
+    private static final int DEFAULT_SIZE = 24;
+    
     private int directionX, directionY;
     private Image image;
     private Image scaledImage;
+    private int spriteSize;
 
-    public Projectile(int startX, int startY, int directionX, int directionY) {
-        // Centraliza o projétil considerando seu tamanho
-        super(startX - SPRITE_SIZE / 2, startY - SPRITE_SIZE / 2, PROJECTILE_SPEED);
-        this.directionX = directionX;
-        this.directionY = directionY;
+    private Projectile(ProjectileBuilder builder) {
+        super(
+            builder.startX - builder.spriteSize / 2, 
+            builder.startY - builder.spriteSize / 2, 
+            builder.speed
+        );
+        this.directionX = builder.directionX;
+        this.directionY = builder.directionY;
+        this.spriteSize = builder.spriteSize;
         load();
     }
 
@@ -26,15 +32,14 @@ public class Projectile extends Entity {
             ImageIcon icon = new ImageIcon("src/res/projectile.png");
             image = icon.getImage();
             if (image != null) {
-                // Escala a imagem para o tamanho reduzido
-                scaledImage = image.getScaledInstance(SPRITE_SIZE, SPRITE_SIZE, Image.SCALE_SMOOTH);
-                width = SPRITE_SIZE;
-                height = SPRITE_SIZE;
+                scaledImage = image.getScaledInstance(spriteSize, spriteSize, Image.SCALE_SMOOTH);
+                width = spriteSize;
+                height = spriteSize;
             }
         } catch (Exception e) {
             System.err.println("Erro ao carregar sprite do projétil!");
-            width = SPRITE_SIZE;
-            height = SPRITE_SIZE;
+            width = spriteSize;
+            height = spriteSize;
         }
     }
 
@@ -50,6 +55,7 @@ public class Projectile extends Entity {
         }
     }
 
+    @Override
     public void draw(Graphics2D g2) {
         if (visible && scaledImage != null) {
             g2.drawImage(scaledImage, x, y, null);
@@ -66,5 +72,40 @@ public class Projectile extends Entity {
 
     public int getAltura() {
         return height;
+    }
+
+    // ========================================
+    // BUILDER PATTERN
+    // ========================================
+    
+    public static class ProjectileBuilder {
+        private final int startX;
+        private final int startY;
+        private final int directionX;
+        private final int directionY;
+        
+        private int speed = DEFAULT_SPEED;
+        private int spriteSize = DEFAULT_SIZE;
+
+        public ProjectileBuilder(int startX, int startY, int directionX, int directionY) {
+            this.startX = startX;
+            this.startY = startY;
+            this.directionX = directionX;
+            this.directionY = directionY;
+        }
+
+        public ProjectileBuilder speed(int speed) {
+            this.speed = speed;
+            return this;
+        }
+
+        public ProjectileBuilder spriteSize(int spriteSize) {
+            this.spriteSize = spriteSize;
+            return this;
+        }
+
+        public Projectile build() {
+            return new Projectile(this);
+        }
     }
 }

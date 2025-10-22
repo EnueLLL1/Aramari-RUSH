@@ -1,9 +1,9 @@
 package Modelo.Entidades;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
 public class Player extends Entity {
 
@@ -29,14 +29,16 @@ public class Player extends Entity {
     private final int SPRITE_ANIMATION_SPEED = 10;
 
     // Sistema de vidas
-    private int health = 3;
-    private int maxHealth = 3;
+    private int health;
+    private int maxHealth;
     private boolean invulnerable = false;
     private int invulnerabilityTimer = 0;
-    private final int INVULNERABILITY_DURATION = 30; // 0,5 segundos (60 FPS)
+    private final int INVULNERABILITY_DURATION = 30;
 
-    public Player(int x, int y, int speed) {
-        super(x, y, speed);
+    private Player(PlayerBuilder builder) {
+        super(builder.x, builder.y, builder.speed);
+        this.health = builder.health;
+        this.maxHealth = builder.maxHealth;
         this.direction = "down";
         this.moving = false;
         load();
@@ -122,7 +124,6 @@ public class Player extends Entity {
         if (!leftPressed) canMoveLeft = true;
         if (!rightPressed) canMoveRight = true;
 
-        // Atualiza invulnerabilidade
         if (invulnerable) {
             invulnerabilityTimer--;
             if (invulnerabilityTimer <= 0) {
@@ -189,7 +190,6 @@ public class Player extends Entity {
     @Override
     public void draw(Graphics2D g2) {
         if (sprite != null && visible) {
-            // Efeito de piscar quando invulnerável
             if (!invulnerable || (invulnerabilityTimer / 5) % 2 == 0) {
                 g2.drawImage(sprite, x, y, null);
             }
@@ -203,9 +203,6 @@ public class Player extends Entity {
             
             invulnerable = true;
             invulnerabilityTimer = INVULNERABILITY_DURATION;
-            
-            // TODO: Adicionar som de dano aqui
-            // SoundManager.playSound("damage");
         }
     }
 
@@ -267,6 +264,7 @@ public class Player extends Entity {
         canMoveRight = true;
     }
 
+    // Getters
     public int getPdx() { return pdx; }
     public int getPdy() { return pdy; }
     public int getLastPdx() { return lastPdx; }
@@ -276,11 +274,46 @@ public class Player extends Entity {
     public int getHealth() { return health; }
     public int getMaxHealth() { return maxHealth; }
     public boolean isInvulnerable() { return invulnerable; }
-
-    public void setPdx(int pdx) { this.pdx = pdx; }
-    public void setPdy(int pdy) { this.pdy = pdy; }
-
     public int getLargura() { return width; }
     public int getAltura() { return height; }
     public BufferedImage getImagem() { return sprite; }
+
+    // Setters
+    public void setPdx(int pdx) { this.pdx = pdx; }
+    public void setPdy(int pdy) { this.pdy = pdy; }
+
+    // Builder Pattern
+    public static class PlayerBuilder {
+        private final int x;
+        private final int y;
+        
+        private int speed = 3;
+        private int health = 3;
+        private int maxHealth = 3;
+
+        public PlayerBuilder(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public PlayerBuilder speed(int speed) {
+            this.speed = speed;
+            return this;
+        }
+
+        public PlayerBuilder health(int health) {
+            this.health = health;
+            this.maxHealth = health;
+            return this;
+        }
+
+        public PlayerBuilder maxHealth(int maxHealth) {
+            this.maxHealth = maxHealth;
+            return this;
+        }
+
+        public Player build() {
+            return new Player(this);
+        }
+    }
 }

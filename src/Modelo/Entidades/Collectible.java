@@ -10,46 +10,37 @@ public class Collectible extends Entity {
     private Image image;
 
     public enum DiamondType {
-        COMUM,
-        RARO,
-        LENDARIO
-    }
+        COMUM(10, "src/res/objects/cdiamond.png"),
+        RARO(50, "src/res/objects/rdiamond.png"),
+        LENDARIO(100, "src/res/objects/ldiamond.png");
 
-    public Collectible(int x, int y, DiamondType type) {
-        super(x, y, 0);
-        this.type = type;
-        setValue();
-        load();
-    }
+        private final int defaultValue;
+        private final String imagePath;
 
-    private void setValue() {
-        switch (type) {
-            case COMUM:
-                value = 10;
-                break;
-            case RARO:
-                value = 50;
-                break;
-            case LENDARIO:
-                value = 100;
-                break;
+        DiamondType(int defaultValue, String imagePath) {
+            this.defaultValue = defaultValue;
+            this.imagePath = imagePath;
         }
+
+        public int getDefaultValue() {
+            return defaultValue;
+        }
+
+        public String getImagePath() {
+            return imagePath;
+        }
+    }
+
+    private Collectible(CollectibleBuilder builder) {
+        super(builder.x, builder.y, 0);
+        this.type = builder.type;
+        this.value = builder.value;
+        load();
     }
 
     @Override
     public void load() {
-        String path = "";
-        switch (type) {
-            case COMUM:
-                path = "src/res/objects/cdiamond.png";
-                break;
-            case RARO:
-                path = "src/res/objects/rdiamond.png";
-                break;
-            case LENDARIO:
-                path = "src/res/objects/ldiamond.png";
-                break;
-        }
+        String path = type.getImagePath();
 
         try {
             ImageIcon icon = new ImageIcon(path);
@@ -67,8 +58,13 @@ public class Collectible extends Entity {
 
     @Override
     public void update() {
+        // Collectibles são estáticos
     }
 
+    // ========================================
+    // GETTERS
+    // ========================================
+    
     public DiamondType getType() {
         return type;
     }
@@ -81,11 +77,43 @@ public class Collectible extends Entity {
         return visible;
     }
 
+    public Image getImagem() {
+        return image;
+    }
+
+    // ========================================
+    // SETTERS
+    // ========================================
+    
     public void setVisivel(boolean visible) {
         this.visible = visible;
     }
 
-    public Image getImagem() {
-        return image;
+    // ========================================
+    // BUILDER PATTERN
+    // ========================================
+    
+    public static class CollectibleBuilder {
+        private final int x;
+        private final int y;
+        private final DiamondType type;
+        
+        private int value;
+
+        public CollectibleBuilder(int x, int y, DiamondType type) {
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.value = type.getDefaultValue();
+        }
+
+        public CollectibleBuilder value(int value) {
+            this.value = value;
+            return this;
+        }
+
+        public Collectible build() {
+            return new Collectible(this);
+        }
     }
 }

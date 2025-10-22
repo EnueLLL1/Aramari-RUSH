@@ -50,7 +50,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private final Random rand;
 
     // Game objects
-    private final Player player;
+    private Player player;
     private final ArrayList<Enemy> enemies;
     private final ArrayList<Projectile> projectiles;
     private final ArrayList<Collectible> collectibles;
@@ -72,7 +72,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
         tileM = new TileManager(this);
         screenShake = new ScreenShake();
         rand = new Random();
-        player = new Player(400, 400, 3);
+        
+        // Usa o Builder para criar o player
+        player = new Player.PlayerBuilder(400, 400)
+                .speed(3)
+                .health(3)
+                .build();
+        
         projectiles = new ArrayList<>();
         collectibles = new ArrayList<>();
         enemies = new ArrayList<>();
@@ -85,7 +91,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
         setupTimers();
         initializeHearts();
         
-        // Adiciona o listener do mouse
         addMouseListener(new MouseInputAdapter());
     }
 
@@ -145,11 +150,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
         collectibles.clear();
         enemies.clear();
 
-        // Reset player
-        player.setX(400);
-        player.setY(400);
-        player.enableAllMovement();
-        player.resetHealth();
+        // Recria o player usando Builder
+        player = new Player.PlayerBuilder(400, 400)
+                .speed(3)
+                .health(3)
+                .build();
 
         initializeHearts();
 
@@ -205,7 +210,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 chance < 90 ? Collectible.DiamondType.RARO :
                         Collectible.DiamondType.LENDARIO;
 
-        collectibles.add(new Collectible(x, y, type));
+        // Usa o Builder para criar o collectible
+        collectibles.add(new Collectible.CollectibleBuilder(x, y, type).build());
     }
 
     private void spawnEnemy() {
@@ -220,11 +226,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int x, y;
         switch (side) {
             case 0: // Esquerda
-                x = -32; // Move para fora da tela
+                x = -32;
                 y = screenCenterY + randomOffset;
                 break;
             case 1: // Direita
-                x = screenWidth - 32; // Alinha com a área de debug
+                x = screenWidth - 32;
                 y = screenCenterY + randomOffset;
                 break;
             case 2: // Topo
@@ -233,7 +239,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 break;
             default: // Base
                 x = screenCenterX + randomOffset;
-                y = screenHeight - 32; // Alinha com a área de debug
+                y = screenHeight - 32;
                 break;
         }
 
@@ -303,18 +309,15 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int topRow = hitboxY / tileSize;
         int bottomRow = (hitboxY + hitboxHeight) / tileSize;
 
-        // Bounds check
         if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
             return true;
         }
 
-        // Clamp to valid range
         leftCol = Math.max(0, leftCol);
         rightCol = Math.min(maxScreenCol - 1, rightCol);
         topRow = Math.max(0, topRow);
         bottomRow = Math.min(maxScreenRow - 1, bottomRow);
 
-        // Check corners only
         return tileM.tile[tileM.mapTileNum[leftCol][topRow]].collision ||
                 tileM.tile[tileM.mapTileNum[rightCol][topRow]].collision ||
                 tileM.tile[tileM.mapTileNum[leftCol][bottomRow]].collision ||
@@ -331,12 +334,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int topRow = y / tileSize;
         int bottomRow = (y + height) / tileSize;
 
-        // Bounds check
         if (leftCol < 0 || rightCol >= maxScreenCol || topRow < 0 || bottomRow >= maxScreenRow) {
             return true;
         }
 
-        // Check all tiles in area
         for (int col = leftCol; col <= rightCol; col++) {
             for (int row = topRow; row <= bottomRow; row++) {
                 if (tileM.tile[tileM.mapTileNum[col][row]].collision) {
@@ -356,7 +357,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
             return;
         }
 
-        // Tempo acabou - vitória!
         endGameAsWin();
     }
 
@@ -405,23 +405,18 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         Graphics2D g2 = (Graphics2D) g;
 
-        // Aplica screen shake
         g2.translate(screenShake.getOffsetX(), screenShake.getOffsetY());
 
-        // Desenha cenário
         tileM.draw(g2);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Desenha entidades
         player.draw(g2);
         drawProjectiles(g2);
         drawCollectibles(g2);
         drawEnemies(g2);
 
-        // Remove translação para UI
         g2.translate(-screenShake.getOffsetX(), -screenShake.getOffsetY());
 
-        // Desenha UI
         drawHearts(g2);
 
         if (isGameOver) {
@@ -483,11 +478,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void drawDebugInfo(Graphics2D g2) {
-        // Player hitbox
         g2.setColor(new Color(255, 0, 0, 160));
         g2.drawRect(player.getX(), player.getY(), player.getWidth(), player.getHeight());
 
-        // Enemy hitboxes
         g2.setColor(new Color(0, 255, 0, 160));
         for (Enemy enemy : enemies) {
             if (enemy.isVisible()) {
@@ -495,7 +488,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
 
-        // Collision tiles
         g2.setColor(new Color(0, 0, 255, 60));
         for (int col = 0; col < maxScreenCol; col++) {
             for (int row = 0; row < maxScreenRow; row++) {
@@ -505,7 +497,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
 
-        // Player info
         g2.setColor(Color.CYAN);
         g2.setFont(new Font("Arial", Font.BOLD, 12));
         g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 80);
@@ -513,22 +504,14 @@ public class GameplayPanel extends JPanel implements ActionListener {
             g2.drawString("INVULNERÁVEL", 20, 95);
         }
 
-        // Desenha áreas de spawn de inimigos
-        g2.setColor(new Color(255, 0, 255, 80)); // Cor roxa semi-transparente
+        g2.setColor(new Color(255, 0, 255, 80));
         int spawnMargin = getHeight() / 6;
         int screenCenterX = getWidth() >> 1;
         int screenCenterY = getHeight() >> 1;
 
-        // Área de spawn esquerda
         g2.fillRect(-32, screenCenterY - spawnMargin, 64, spawnMargin * 2);
-        
-        // Área de spawn direita
         g2.fillRect(screenWidth - 32, screenCenterY - spawnMargin, 64, spawnMargin * 2);
-        
-        // Área de spawn superior
         g2.fillRect(screenCenterX - spawnMargin, -32, spawnMargin * 2, 64);
-        
-        // Área de spawn inferior
         g2.fillRect(screenCenterX - spawnMargin, screenHeight - 32, spawnMargin * 2, 64);
 
         g2.setColor(Color.YELLOW);
@@ -564,7 +547,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         player.update();
 
-        // Clamp to screen bounds
         player.setX(Math.max(0, Math.min(player.getX(), screenWidth - player.getWidth())));
         player.setY(Math.max(0, Math.min(player.getY(), screenHeight - player.getHeight())));
 
@@ -602,18 +584,15 @@ public class GameplayPanel extends JPanel implements ActionListener {
             if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
                     enemy.getWidth(), enemy.getHeight())) {
 
-                // Reverte e sincroniza
                 enemy.setX(oldX);
                 enemy.setY(oldY);
                 enemy.syncPrecisePosition();
 
-                // Tenta X
                 enemy.tryMoveX(playerX);
 
                 if (checkTileCollisionAt(enemy.getX(), enemy.getY(),
                         enemy.getWidth(), enemy.getHeight())) {
 
-                    // Reverte X, tenta Y
                     enemy.setX(oldX);
                     enemy.syncPrecisePosition();
                     enemy.tryMoveY(playerY);
@@ -657,29 +636,30 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void fireProjectile(int mouseX, int mouseY) {
-        // Calcula o centro do jogador
         int playerCenterX = player.getX() + (player.getWidth() >> 1);
         int playerCenterY = player.getY() + (player.getHeight() >> 1);
 
-        // Calcula o vetor direção
         double dx = mouseX - playerCenterX;
         double dy = mouseY - playerCenterY;
 
-        // Normaliza o vetor
         double length = Math.sqrt(dx * dx + dy * dy);
         if (length > 0) {
             dx = dx / length;
             dy = dy / length;
         }
 
-        // Multiplica pela velocidade desejada
         int projectileSpeed = 8;
         dx *= projectileSpeed;
         dy *= projectileSpeed;
 
-        projectiles.add(new Projectile(playerCenterX, playerCenterY, (int)dx, (int)dy));
+        // Usa o Builder para criar o projétil
+        projectiles.add(new Projectile.ProjectileBuilder(
+                playerCenterX, 
+                playerCenterY, 
+                (int)dx, 
+                (int)dy
+        ).build());
     }
-    
 
     public boolean isStarted() { return isStarted; }
     public void setStarted(boolean started) { this.isStarted = started; }
