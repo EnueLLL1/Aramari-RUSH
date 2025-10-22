@@ -1,4 +1,5 @@
 Modelo/Entidades/Collectible.class
+Modelo/Entidades/Collectible$CollectibleBuilder.class
 Modelo/CommonScoreStrategy.class
 Modelo/Entidades/Entity.class
 Modelo/Entidades/Enemy.class
@@ -6,6 +7,7 @@ Modelo/Entidades/Collectible$DiamondType.class
 Modelo/GameplayPanel.class
 Modelo/GameplayPanel$TecladoAdapter.class
 Modelo/UI/WinScreen$2.class
+Modelo/Audio/SoundManager.class
 Modelo/Entidades/EnemyFactory.class
 Modelo/UI/GameOverScreen.class
 Modelo/Entidades/Enemy$EnemyType.class
@@ -14,7 +16,9 @@ Modelo/UI/GameOverScreen$2.class
 tile/TileManager.class
 Modelo/Entidades/Player.class
 Modelo/Entidades/Projectile.class
+Modelo/Entidades/Player$PlayerBuilder.class
 tile/Tile.class
+Modelo/Entidades/Projectile$ProjectileBuilder.class
 Modelo/MenuPanel.class
 Modelo/GameplayPanel$MouseInputAdapter.class
 Modelo/BonusScoreStrategy$1.class
