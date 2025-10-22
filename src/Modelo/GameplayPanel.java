@@ -1,6 +1,7 @@
 package Modelo;
 
 import AramariRUSH.Container;
+import Modelo.Audio.SoundManager;
 import Modelo.Entidades.*;
 import Modelo.UI.GameOverScreen;
 import Modelo.UI.Heart;
@@ -48,6 +49,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private final TileManager tileM;
     private final ScreenShake screenShake;
     private final Random rand;
+    private final SoundManager soundManager;
 
     // Game objects
     private Player player;
@@ -72,6 +74,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         tileM = new TileManager(this);
         screenShake = new ScreenShake();
         rand = new Random();
+        soundManager = SoundManager.getInstance();
         
         // Usa o Builder para criar o player
         player = new Player.PlayerBuilder(400, 400)
@@ -115,6 +118,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
         countdownTimer.start();
         spawnTimer.start();
         enemySpawnTimer.start();
+        
+        // Inicia a música de fundo
+        soundManager.playMusic();
     }
 
     private void initializeHearts() {
@@ -164,6 +170,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         // Restart timers
         restartAllTimers();
+        
+        // Reinicia a música de fundo
+        soundManager.playMusic();
+        
         requestFocusInWindow();
     }
 
@@ -253,6 +263,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
             if (c.isVisible() && player.intersects(c)) {
                 score += scoreStrategy.calculateScore(c);
                 c.setVisible(false);
+                soundManager.playSound("collect"); // Som de coleta
                 it.remove();
             }
         }
@@ -288,6 +299,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
             if (enemy.isVisible() && player.intersects(enemy)) {
                 player.takeDamage(1);
                 screenShake.startShake(5, 15);
+                soundManager.playSound("damage"); // Som de dano
 
                 if (player.getHealth() <= 0) {
                     endGameAsLoss();
@@ -364,6 +376,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
         isWin = true;
         isStarted = false;
         stopAllTimers();
+        soundManager.stopMusic(); // Para a música
+        soundManager.playSound("win"); // Som de vitória
         winScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
     }
 
@@ -371,6 +385,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
         isGameOver = true;
         isStarted = false;
         stopAllTimers();
+        soundManager.stopMusic(); // Para a música
+        soundManager.playSound("gameover"); // Som de game over
         gameOverScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
     }
 
@@ -659,6 +675,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
                 (int)dx, 
                 (int)dy
         ).build());
+        
+        soundManager.playSound("shoot"); // Som de tiro
     }
 
     public boolean isStarted() { return isStarted; }

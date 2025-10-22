@@ -1,6 +1,7 @@
 package Modelo.UI;
 
 import AramariRUSH.Container;
+import Modelo.Audio.SoundManager;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -15,6 +16,7 @@ public class GameOverScreen {
     private int score;
     private Container containerRef;
     private JPanel parentPanel;
+    private SoundManager soundManager;
     
     
     private Rectangle btnJogarNovamenteRect;
@@ -35,6 +37,7 @@ public class GameOverScreen {
         this.score = 0;
         this.hoverJogarNovamente = false;
         this.hoverSair = false;
+        this.soundManager = SoundManager.getInstance();
         
         ImageIcon gameOverIcon = new ImageIcon("src/res/gameover_sprite.png");
         spriteGameOver = gameOverIcon.getImage();
@@ -57,11 +60,13 @@ public class GameOverScreen {
                 Point clickPoint = e.getPoint();
                 
                 if (btnJogarNovamenteRect != null && btnJogarNovamenteRect.contains(clickPoint)) {
+                    soundManager.playSound("button"); // Som de botão
                     hide();
                     if (onRestart != null) {
                         onRestart.run();
                     }
                 } else if (btnSairRect != null && btnSairRect.contains(clickPoint)) {
+                    soundManager.playSound("button"); // Som de botão
                     hide();
                     if (onBackToMenu != null) {
                         onBackToMenu.run();

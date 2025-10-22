@@ -1,6 +1,7 @@
 package Modelo;
 
 import AramariRUSH.Container;
+import Modelo.Audio.SoundManager;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -12,8 +13,11 @@ public class MenuPanel extends JPanel {
     private Image fundoTela, spriteTitulo;
     private JButton btnJogar, btnSair;
     private Image spriteJogar, spriteSair;
+    private SoundManager soundManager;
 
     public MenuPanel(Container window) {
+
+        soundManager = SoundManager.getInstance();
 
         // Carrega a imagem de fundo
         ImageIcon pegaimagem = new ImageIcon("src//res//fundo_menu.png");
@@ -43,17 +47,20 @@ public class MenuPanel extends JPanel {
 
         // Ações dos botões
         btnJogar.addActionListener(e -> {
+            soundManager.playSound("button"); // Som de botão
             window.showScreen("Gameplay");
         });
 
         btnSair.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                soundManager.playSound("button"); // Som de botão
                 int resposta = JOptionPane.showConfirmDialog(MenuPanel.this,
                         "Você tem certeza que vai deixar Aramari?",
                         "",
                         JOptionPane.YES_NO_OPTION);
                 if (resposta == JOptionPane.YES_OPTION) {
+                    soundManager.cleanup(); // Limpa recursos de áudio
                     System.exit(0);
                 }
             }
@@ -85,7 +92,7 @@ public class MenuPanel extends JPanel {
             botao.setPreferredSize(new Dimension(200, 60));
         }
 
-        // Adiciona efeito hover (inchaço)
+        // Adiciona efeito hover (inchação)
         botao.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
