@@ -643,7 +643,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
             g2.drawString("INVULNERÁVEL", 20, 120);
         }
 
-        g2.setColor(new Color(255, 0, 255, 80));
+        g2.setColor(Color.DARK_GRAY);
         int spawnMargin = getHeight() / 6;
         int screenCenterX = getWidth() >> 1;
         int screenCenterY = getHeight() >> 1;

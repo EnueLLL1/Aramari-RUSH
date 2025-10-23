@@ -2,6 +2,7 @@ package AramariRUSH;
 
 import Modelo.GameplayPanel;
 import Modelo.MenuPanel;
+import Modelo.TutorialPanel;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -13,8 +14,13 @@ public class Container extends JFrame {
     private JPanel mainPanel;
     private GameplayPanel gameplayPanel;
     private MenuPanel menuPanel;
+    private TutorialPanel tutorialPanel;
 
     public Container() {
+
+        //Configura o icone do Jogo
+        setIconImage(loadIcon());
+
         // Configuração básica da janela
         setTitle("DIAMONDS FOR THE QUEEN");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -26,14 +32,17 @@ public class Container extends JFrame {
 
         // Criação dos painéis
         menuPanel = new MenuPanel(this);
+        tutorialPanel = new TutorialPanel(this);
         gameplayPanel = new GameplayPanel(this);
 
         // Define tamanhos fixos e coerentes
         menuPanel.setPreferredSize(new Dimension(800, 800));
+        tutorialPanel.setPreferredSize(new Dimension(800,800));
         gameplayPanel.setPreferredSize(new Dimension(800, 800));
 
         // Adiciona os painéis ao container principal
         mainPanel.add(menuPanel, "Menu");
+        mainPanel.add(tutorialPanel, "Tutorial");
         mainPanel.add(gameplayPanel, "Gameplay");
         add(mainPanel);
 
@@ -77,8 +86,22 @@ public class Container extends JFrame {
                 gameplayPanel.setStarted(false);
                 menuPanel.requestFocusInWindow();
                 System.out.println("→ Foco transferido para MenuPanel");
+            } else if ("Tutorial".equals(name)) {
+                tutorialPanel.requestFocusInWindow();
+                System.out.println("Foco transferido para TutorialPanel");
             }
         });
+    }
+
+    private Image loadIcon() {
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/res/IconGame.png"));
+            System.out.println("✅ Ícone carregado com sucesso!");
+            return icon.getImage();
+        } catch (Exception e) {
+            System.err.println("⚠️ Ícone não encontrado, usando ícone padrão");
+            return null;
+        }
     }
 
     public static void main(String[] args) {

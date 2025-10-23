@@ -1,14 +1,9 @@
 package Modelo;
 
 import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Image;
-import java.awt.Insets;
 import java.awt.RenderingHints;
 
 import javax.swing.ImageIcon;
@@ -18,6 +13,7 @@ import javax.swing.JPanel;
 
 import AramariRUSH.Container;
 import Modelo.Audio.SoundManager;
+import Modelo.UI.ButtonFactory;
 
 public class MenuPanel extends JPanel {
 
@@ -25,8 +21,10 @@ public class MenuPanel extends JPanel {
     private final transient Image spriteTitulo;
     private final transient Image spriteJogar;
     private final transient Image spriteSair;
+    private final transient Image spriteTutorial;
     private final JButton btnJogar;
     private final JButton btnSair;
+    private final JButton btnTutorial;
     private final transient SoundManager soundManager;
 
     public MenuPanel(Container window) {
@@ -42,28 +40,35 @@ public class MenuPanel extends JPanel {
         ImageIcon jogarIcon = new ImageIcon(getClass().getResource("/res/jogar_sprite.png"));
         this.spriteJogar = jogarIcon.getImage();
 
+        // Carrega o sprite do butão de Tutorial
+        ImageIcon tutorialIcon = new ImageIcon(getClass().getResource("/res/tutorial_sprite.png"));
+        this.spriteTutorial = tutorialIcon.getImage();
+
         ImageIcon sairIcon = new ImageIcon(getClass().getResource("/res/sair_sprite.png"));
         this.spriteSair = sairIcon.getImage();
 
         // Configura o layout
-        setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+        setLayout(null);
+        setFocusable(true);
+        setDoubleBuffered(true);
 
         // Inicializa o gerenciador de som
         this.soundManager = SoundManager.getInstance();
 
-        // Cria os botões
-        this.btnJogar = new JButton();
-        this.btnSair = new JButton();
-
-        // Configura os botões
-        configurarBotao(btnJogar, spriteJogar);
-        configurarBotao(btnSair, spriteSair);
+        // Cria os botões usando a ButtonFactory
+        this.btnJogar = ButtonFactory.createButton(spriteJogar);
+        this.btnTutorial = ButtonFactory.createButton(spriteTutorial);
+        this.btnSair = ButtonFactory.createButton(spriteSair);
 
         // Configura as ações dos botões
         btnJogar.addActionListener(e -> {
             soundManager.playSound("button");
             window.showScreen("Gameplay");
+        });
+
+        btnTutorial.addActionListener(e -> {
+            soundManager.playSound("button");
+            window.showScreen("Tutorial");
         });
 
         btnSair.addActionListener(e -> {
@@ -78,55 +83,33 @@ public class MenuPanel extends JPanel {
             }
         });
 
-        // Posicionamento dos botões
-        gbc.insets = new Insets(380, 20, 15, 20); // Margem superior maior para não sobrepor o título
-        gbc.fill = GridBagConstraints.NONE;
-
-        gbc.gridy = 0;
-        add(btnJogar, gbc);
-
-        gbc.insets = new Insets(15, 20, 15, 20); // Espaçamento normal entre os botões
-        gbc.gridy = 1;
-        add(btnSair, gbc);
+        // Adiciona os botões ao painel
+        add(btnJogar);
+        add(btnTutorial);
+        add(btnSair);
     }
 
-    private void configurarBotao(JButton botao, Image sprite) {
-        // Remove bordas e fundo padrão
-        botao.setBorder(null);
-        botao.setContentAreaFilled(false);
-        botao.setFocusPainted(false);
-        botao.setOpaque(false);
+    private void posicionarBotoes() {
+        int btnWidth = 200;
+        int btnHeight = 60;
+        int spacing = 20;
+        int totalHeight = (btnHeight * 3) + (spacing * 2);
+        
+        // Calcula a posição Y considerando o título
+        int tituloHeight = (int) (Math.min(400, getWidth() - 40) * 0.75); // Altura do título
+        int tituloY = getHeight() / 8; // Posição Y do título
+        int tituloBottom = tituloY + tituloHeight;
+        
+        // Posiciona os botões abaixo do título com margem de 60px
+        int startY = tituloBottom + 60;
+        int x = (getWidth() - btnWidth) / 2;
 
-        // Ícone com tamanho fixo de 200x60
-        if (sprite != null) {
-            ImageIcon scaledIcon = new ImageIcon(sprite.getScaledInstance(200, 60, Image.SCALE_SMOOTH));
-            botao.setIcon(scaledIcon);
-            botao.setPreferredSize(new Dimension(200, 60));
-        }
-
-        // Adiciona efeito hover (inchação)
-        botao.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                if (sprite != null) {
-                    // Aumenta 10% no hover (220x66)
-                    ImageIcon hoverIcon = new ImageIcon(sprite.getScaledInstance(220, 66, Image.SCALE_SMOOTH));
-                    botao.setIcon(hoverIcon);
-                }
-                botao.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            }
-
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                if (sprite != null) {
-                    // Volta ao tamanho normal (200x60)
-                    ImageIcon normalIcon = new ImageIcon(sprite.getScaledInstance(200, 60, Image.SCALE_SMOOTH));
-                    botao.setIcon(normalIcon);
-                }
-                botao.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-            }
-        });
+        // Posiciona os botões abaixo do título
+        btnJogar.setBounds(x, startY, btnWidth, btnHeight);
+        btnTutorial.setBounds(x, startY + btnHeight + spacing, btnWidth, btnHeight);
+        btnSair.setBounds(x, startY + (btnHeight + spacing) * 2, btnWidth, btnHeight);
     }
+
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -169,16 +152,19 @@ public class MenuPanel extends JPanel {
             g2.fillRect(0, 0, panelW, panelH);
         }
 
-        // Título com tamanho fixo de 400x300
+        // Título com tamanho responsivo
         if (spriteTitulo != null) {
-            int tituloW = 400;
-            int tituloH = 300;
+            int tituloW = Math.min(400, panelW - 40); // Máximo 400px, mas não ultrapassa a largura
+            int tituloH = (int) (tituloW * 0.75); // Mantém proporção 4:3
 
             int x = (panelW - tituloW) / 2; // centraliza horizontalmente
-            int y = panelH / 10;            // margem superior
+            int y = panelH / 8;             // margem superior menor
 
             g2.drawImage(spriteTitulo, x, y, tituloW, tituloH, this);
         }
+
+        // Posiciona os botões de forma responsiva
+        posicionarBotoes();
 
         g2.dispose();
     }
