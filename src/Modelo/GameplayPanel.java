@@ -50,7 +50,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
     // Power-up state e constantes
     private boolean tripleShotActive = false;
     private long tripleShotEndTime = 0;
-    private static final int POWER_UP_SPAWN_INTERVAL = 15000; // 15 segundos
+    private static final int POWER_UP_SPAWN_INTERVAL = 15000;
+
+    // Bonus mode state
+    private boolean bonusModeActive = false;
+    private static final int BONUS_MODE_THRESHOLD = 30;
+    private static final int NORMAL_ENEMY_SPAWN_DELAY = 3000;
+    private static final int BONUS_ENEMY_SPAWN_DELAY = 1000;
 
     // FPS tracking
     private long lastFpsTime = System.nanoTime();
@@ -79,7 +85,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private final ArrayList<Heart> hearts;
 
     // Strategy & UI
-    private final ScoreStrategy scoreStrategy;
+    private ScoreStrategy scoreStrategy;
     private final GameOverScreen gameOverScreen;
     private final WinScreen winScreen;
     private final Container containerRef;
@@ -90,13 +96,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
     public GameplayPanel(Container container) {
         this.containerRef = container;
 
-        // Inicializa objetos finais
         tileM = new TileManager(this);
         screenShake = new ScreenShake();
         rand = new Random();
         soundManager = SoundManager.getInstance();
         
-        // Usa o Builder para criar o player
         player = new Player.PlayerBuilder(400, 400)
                 .speed(3)
                 .health(3)
@@ -133,8 +137,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         countdownTimer = new Timer(1000, e -> updateTime());
         spawnTimer = new Timer(3000, e -> spawnDiamond());
-        enemySpawnTimer = new Timer(3000, e -> spawnEnemy());
-        powerUpSpawnTimer = new Timer(10000, e -> trySpawnPowerUp()); // A cada 15 segundos
+        enemySpawnTimer = new Timer(NORMAL_ENEMY_SPAWN_DELAY, e -> spawnEnemy());
+        powerUpSpawnTimer = new Timer(10000, e -> trySpawnPowerUp());
 
         gameTimer.start();
         countdownTimer.start();
@@ -142,7 +146,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
         enemySpawnTimer.start();
         powerUpSpawnTimer.start();
         
-        // Inicia a música de fundo
         soundManager.playMusic();
     }
 
@@ -167,7 +170,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     public void reiniciarJogo() {
-        // Reset game state
         isGameOver = false;
         isWin = false;
         isStarted = true;
@@ -175,14 +177,15 @@ public class GameplayPanel extends JPanel implements ActionListener {
         timeLeft = 120;
         tripleShotActive = false;
         tripleShotEndTime = 0;
+        bonusModeActive = false;
 
-        // Clear collections
+        scoreStrategy = new CommonScoreStrategy();
+
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
         powerUps.clear();
 
-        // Recria o player usando Builder
         player = new Player.PlayerBuilder(400, 400)
                 .speed(3)
                 .health(3)
@@ -190,14 +193,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         initializeHearts();
 
-        // Hide screens
         gameOverScreen.hide();
         winScreen.hide();
 
-        // Restart timers
         restartAllTimers();
         
-        // Reinicia a música de fundo
         soundManager.playMusic();
         
         requestFocusInWindow();
@@ -209,7 +209,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
         gameOverScreen.hide();
         winScreen.hide();
 
-        // Reset state
         isGameOver = false;
         isWin = false;
         isStarted = false;
@@ -217,8 +216,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
         timeLeft = 120;
         tripleShotActive = false;
         tripleShotEndTime = 0;
+        bonusModeActive = false;
 
-        // Clear collections
+        scoreStrategy = new CommonScoreStrategy();
+
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
@@ -230,7 +231,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private void trySpawnPowerUp() {
         if (!isStarted || isGameOver || isWin) return;
 
-        // 40% de chance
         if (rand.nextInt(100) < 40) {
             spawnPowerUp();
         }
@@ -242,7 +242,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int attempts = 0;
         boolean validPosition = false;
 
-        // Procura posição válida
         while (attempts < maxAttempts && !validPosition) {
             x = (rand.nextInt(maxScreenCol - 2) + 1) * tileSize;
             y = (rand.nextInt(maxScreenRow - 2) + 1) * tileSize;
@@ -263,7 +262,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
         int attempts = 0;
         boolean validPosition = false;
 
-        // Procura posição válida
         while (attempts < maxAttempts && !validPosition) {
             x = (rand.nextInt(maxScreenCol - 2) + 1) * tileSize;
             y = (rand.nextInt(maxScreenRow - 2) + 1) * tileSize;
@@ -271,13 +269,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
             attempts++;
         }
 
-        // Determina tipo baseado em probabilidade
         int chance = rand.nextInt(100);
         Collectible.DiamondType type = chance < 60 ? Collectible.DiamondType.COMUM :
                 chance < 90 ? Collectible.DiamondType.RARO :
                         Collectible.DiamondType.LENDARIO;
 
-        // Usa o Builder para criar o collectible
         collectibles.add(new Collectible.CollectibleBuilder(x, y, type).build());
     }
 
@@ -292,19 +288,19 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         int x, y;
         switch (side) {
-            case 0: // Esquerda
+            case 0:
                 x = -32;
                 y = screenCenterY + randomOffset;
                 break;
-            case 1: // Direita
+            case 1:
                 x = screenWidth - 32;
                 y = screenCenterY + randomOffset;
                 break;
-            case 2: // Topo
+            case 2:
                 x = screenCenterX + randomOffset;
                 y = -32;
                 break;
-            default: // Base
+            default:
                 x = screenCenterX + randomOffset;
                 y = screenHeight - 32;
                 break;
@@ -325,7 +321,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
     
-        // Verifica colisão com power-ups
         Iterator<PowerUp> powerUpIt = powerUps.iterator();
         while (powerUpIt.hasNext()) {
             PowerUp powerUp = powerUpIt.next();
@@ -346,7 +341,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void updatePowerUps() {
-        // Verifica se o power-up expirou
         if (tripleShotActive && System.currentTimeMillis() >= tripleShotEndTime) {
             tripleShotActive = false;
         }
@@ -448,10 +442,28 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         if (timeLeft > 0) {
             timeLeft--;
+            
+            if (timeLeft == BONUS_MODE_THRESHOLD && !bonusModeActive) {
+                activateBonusMode();
+            }
+            
             return;
         }
 
         endGameAsWin();
+    }
+
+    private void activateBonusMode() {
+        bonusModeActive = true;
+        
+        scoreStrategy = new BonusScoreStrategy();
+        
+        enemySpawnTimer.stop();
+        enemySpawnTimer = new Timer(BONUS_ENEMY_SPAWN_DELAY, e -> spawnEnemy());
+        enemySpawnTimer.start();
+        
+        System.out.println("🔥 MODO BONUS ATIVADO! 🔥");
+        System.out.println("Pontuação dobrada e mais inimigos!");
     }
 
     private void endGameAsWin() {
@@ -484,7 +496,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
         gameTimer.restart();
         countdownTimer.restart();
         spawnTimer.restart();
-        enemySpawnTimer.restart();
+        
+        enemySpawnTimer.stop();
+        enemySpawnTimer = new Timer(NORMAL_ENEMY_SPAWN_DELAY, e -> spawnEnemy());
+        enemySpawnTimer.start();
+        
         powerUpSpawnTimer.restart();
     }
 
@@ -579,13 +595,20 @@ public class GameplayPanel extends JPanel implements ActionListener {
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.BOLD, 18));
         g2.drawString("Pontuação: " + score, 20, 30);
-        g2.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
-        // Indicador de power-up ativo
+        
+        if (bonusModeActive) {
+            g2.setColor(Color.RED);
+            g2.drawString("Tempo: " + formatTime(timeLeft) + " BONUS!", 20, 55);
+        } else {
+            g2.setColor(Color.WHITE);
+            g2.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
+        }
+        
         if (tripleShotActive) {
            long timeRemaining = (tripleShotEndTime - System.currentTimeMillis()) / 1000;
-           g2.setColor(Color.WHITE);
+           g2.setColor(Color.CYAN);
            g2.setFont(new Font("Arial", Font.BOLD, 18));
-          g2.drawString("TIRO TRIPLO: " + timeRemaining + "s", 20, 80);
+           g2.drawString("TIRO TRIPLO: " + timeRemaining + "s", 20, 80);
         }
 
         g2.setColor(Color.YELLOW);
@@ -632,6 +655,17 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         if (tripleShotActive) {
             g2.drawString("POWER-UP ATIVO", 20, 135);
+        }
+        
+        if (bonusModeActive) {
+            g2.setColor(Color.RED);
+            g2.drawString("MODO BONUS ATIVO!", 20, 150);
+            g2.drawString("Estratégia: BonusScoreStrategy", 20, 165);
+            g2.drawString("Enemy Spawn: " + BONUS_ENEMY_SPAWN_DELAY + "ms", 20, 180);
+        } else {
+            g2.setColor(Color.GREEN);
+            g2.drawString("Estratégia: CommonScoreStrategy", 20, 150);
+            g2.drawString("Enemy Spawn: " + NORMAL_ENEMY_SPAWN_DELAY + "ms", 20, 165);
         }
 
         g2.setColor(Color.YELLOW);
@@ -773,10 +807,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         dx *= projectileSpeed;
         dy *= projectileSpeed;
 
-        // Usa o Builder para criar o projétil
-
         if (tripleShotActive) {
-            // Tiro central
             projectiles.add(new Projectile.ProjectileBuilder(
                     playerCenterX, 
                     playerCenterY, 
@@ -784,8 +815,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
                     (int)dy
             ).build());
 
-            // Tiro à esquerda (ângulo de -15 graus)
-            double angle = -Math.PI / 12; // -15 graus
+            double angle = -Math.PI / 12;
             double leftDx = dx * Math.cos(angle) - dy * Math.sin(angle);
             double leftDy = dx * Math.sin(angle) + dy * Math.cos(angle);
             projectiles.add(new Projectile.ProjectileBuilder(
@@ -795,8 +825,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
                     (int)leftDy
             ).build());
 
-            // Tiro à direita (ângulo de +15 graus)
-            angle = Math.PI / 12; // +15 graus
+            angle = Math.PI / 12;
             double rightDx = dx * Math.cos(angle) - dy * Math.sin(angle);
             double rightDy = dx * Math.sin(angle) + dy * Math.cos(angle);
             projectiles.add(new Projectile.ProjectileBuilder(
@@ -806,8 +835,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
                     (int)rightDy
             ).build());
         } else {
-                //Projetil normal
-                projectiles.add(new Projectile.ProjectileBuilder(
+            projectiles.add(new Projectile.ProjectileBuilder(
                     playerCenterX,
                     playerCenterY,
                     (int)dx,
