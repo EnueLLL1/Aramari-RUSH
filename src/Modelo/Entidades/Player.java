@@ -1,8 +1,9 @@
 package Modelo.Entidades;
 
-import java.awt.*;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+
 import javax.imageio.ImageIO;
 
 public class Player extends Entity {
@@ -187,133 +188,161 @@ public class Player extends Entity {
         }
     }
 
-    @Override
-    public void draw(Graphics2D g2) {
-        if (sprite != null && visible) {
-            if (!invulnerable || (invulnerabilityTimer / 5) % 2 == 0) {
-                g2.drawImage(sprite, x, y, null);
+        @Override
+        public void draw(Graphics2D g2){
+            if (sprite != null && visible) {
+                if (!invulnerable || (invulnerabilityTimer / 5) % 2 == 0) {
+                    g2.drawImage(sprite, x, y, null);
+                }
+            }
+        }
+
+        public void takeDamage ( int damage){
+            if (!invulnerable && health > 0) {
+                health -= damage;
+                if (health < 0) health = 0;
+
+                invulnerable = true;
+                invulnerabilityTimer = INVULNERABILITY_DURATION;
+            }
+        }
+
+        public void heal ( int amount){
+            health += amount;
+            if (health > maxHealth) health = maxHealth;
+        }
+
+        public void resetHealth () {
+            health = maxHealth;
+            invulnerable = false;
+            invulnerabilityTimer = 0;
+        }
+
+        public void keyPressed (KeyEvent e){
+            int key = e.getKeyCode();
+
+            if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) upPressed = true;
+            if (key == KeyEvent.VK_S || key == KeyEvent.VK_DOWN) downPressed = true;
+            if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) leftPressed = true;
+            if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) rightPressed = true;
+        }
+
+        public void keyRelease (KeyEvent e){
+            int key = e.getKeyCode();
+
+            if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) upPressed = false;
+            if (key == KeyEvent.VK_S || key == KeyEvent.VK_DOWN) downPressed = false;
+            if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) leftPressed = false;
+            if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) rightPressed = false;
+        }
+
+        public void stopMovement () {
+            dx = 0;
+            dy = 0;
+
+            if (direction.equals("up")) canMoveUp = false;
+            else if (direction.equals("down")) canMoveDown = false;
+            else if (direction.equals("left")) canMoveLeft = false;
+            else if (direction.equals("right")) canMoveRight = false;
+        }
+
+        public void stopVerticalMovement () {
+            dy = 0;
+            if (direction.equals("up")) canMoveUp = false;
+            else if (direction.equals("down")) canMoveDown = false;
+        }
+
+        public void stopHorizontalMovement () {
+            dx = 0;
+            if (direction.equals("left")) canMoveLeft = false;
+            else if (direction.equals("right")) canMoveRight = false;
+        }
+
+        public void enableAllMovement () {
+            canMoveUp = true;
+            canMoveDown = true;
+            canMoveLeft = true;
+            canMoveRight = true;
+        }
+
+        // Getters
+        public int getPdx () {
+            return pdx;
+        }
+        public int getPdy () {
+            return pdy;
+        }
+        public int getLastPdx () {
+            return lastPdx;
+        }
+        public int getLastPdy () {
+            return lastPdy;
+        }
+        public String getDirection () {
+            return direction;
+        }
+        public boolean isMoving () {
+            return moving;
+        }
+        public int getHealth () {
+            return health;
+        }
+        public int getMaxHealth () {
+            return maxHealth;
+        }
+        public boolean isInvulnerable () {
+            return invulnerable;
+        }
+        public int getLargura () {
+            return width;
+        }
+        public int getAltura () {
+            return height;
+        }
+        public BufferedImage getImagem () {
+            return sprite;
+        }
+
+        // Setters
+        public void setPdx ( int pdx){
+            this.pdx = pdx;
+        }
+        public void setPdy ( int pdy){
+            this.pdy = pdy;
+        }
+
+        // Builder Pattern
+        public static class PlayerBuilder {
+            private final int x;
+            private final int y;
+
+            private int speed = 3;
+            private int health = 3;
+            private int maxHealth = 3;
+
+            public PlayerBuilder(int x, int y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            public PlayerBuilder speed(int speed) {
+                this.speed = speed;
+                return this;
+            }
+
+            public PlayerBuilder health(int health) {
+                this.health = health;
+                this.maxHealth = health;
+                return this;
+            }
+
+            public PlayerBuilder maxHealth(int maxHealth) {
+                this.maxHealth = maxHealth;
+                return this;
+            }
+
+            public Player build() {
+                return new Player(this);
             }
         }
     }
-
-    public void takeDamage(int damage) {
-        if (!invulnerable && health > 0) {
-            health -= damage;
-            if (health < 0) health = 0;
-            
-            invulnerable = true;
-            invulnerabilityTimer = INVULNERABILITY_DURATION;
-        }
-    }
-
-    public void heal(int amount) {
-        health += amount;
-        if (health > maxHealth) health = maxHealth;
-    }
-
-    public void resetHealth() {
-        health = maxHealth;
-        invulnerable = false;
-        invulnerabilityTimer = 0;
-    }
-
-    public void keyPressed(KeyEvent e) {
-        int key = e.getKeyCode();
-
-        if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) upPressed = true;
-        if (key == KeyEvent.VK_S || key == KeyEvent.VK_DOWN) downPressed = true;
-        if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) leftPressed = true;
-        if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) rightPressed = true;
-    }
-
-    public void keyRelease(KeyEvent e) {
-        int key = e.getKeyCode();
-
-        if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) upPressed = false;
-        if (key == KeyEvent.VK_S || key == KeyEvent.VK_DOWN) downPressed = false;
-        if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) leftPressed = false;
-        if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) rightPressed = false;
-    }
-
-    public void stopMovement() {
-        dx = 0;
-        dy = 0;
-
-        if (direction.equals("up")) canMoveUp = false;
-        else if (direction.equals("down")) canMoveDown = false;
-        else if (direction.equals("left")) canMoveLeft = false;
-        else if (direction.equals("right")) canMoveRight = false;
-    }
-
-    public void stopVerticalMovement() {
-        dy = 0;
-        if (direction.equals("up")) canMoveUp = false;
-        else if (direction.equals("down")) canMoveDown = false;
-    }
-
-    public void stopHorizontalMovement() {
-        dx = 0;
-        if (direction.equals("left")) canMoveLeft = false;
-        else if (direction.equals("right")) canMoveRight = false;
-    }
-
-    public void enableAllMovement() {
-        canMoveUp = true;
-        canMoveDown = true;
-        canMoveLeft = true;
-        canMoveRight = true;
-    }
-
-    // Getters
-    public int getPdx() { return pdx; }
-    public int getPdy() { return pdy; }
-    public int getLastPdx() { return lastPdx; }
-    public int getLastPdy() { return lastPdy; }
-    public String getDirection() { return direction; }
-    public boolean isMoving() { return moving; }
-    public int getHealth() { return health; }
-    public int getMaxHealth() { return maxHealth; }
-    public boolean isInvulnerable() { return invulnerable; }
-    public int getLargura() { return width; }
-    public int getAltura() { return height; }
-    public BufferedImage getImagem() { return sprite; }
-
-    // Setters
-    public void setPdx(int pdx) { this.pdx = pdx; }
-    public void setPdy(int pdy) { this.pdy = pdy; }
-
-    // Builder Pattern
-    public static class PlayerBuilder {
-        private final int x;
-        private final int y;
-        
-        private int speed = 3;
-        private int health = 3;
-        private int maxHealth = 3;
-
-        public PlayerBuilder(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        public PlayerBuilder speed(int speed) {
-            this.speed = speed;
-            return this;
-        }
-
-        public PlayerBuilder health(int health) {
-            this.health = health;
-            this.maxHealth = health;
-            return this;
-        }
-
-        public PlayerBuilder maxHealth(int maxHealth) {
-            this.maxHealth = maxHealth;
-            return this;
-        }
-
-        public Player build() {
-            return new Player(this);
-        }
-    }
-}

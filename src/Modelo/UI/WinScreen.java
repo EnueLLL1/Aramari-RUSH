@@ -1,11 +1,21 @@
 package Modelo.UI;
 
-import AramariRUSH.Container;
-import Modelo.Audio.SoundManager;
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.*;
+
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+
+import AramariRUSH.Container;
+import Modelo.Audio.SoundManager;
 
 public class WinScreen {
     
@@ -40,13 +50,13 @@ public class WinScreen {
         this.soundManager = SoundManager.getInstance();
         
         
-        ImageIcon youWinIcon = new ImageIcon("src/res/youwin_sprite.png");
+        ImageIcon youWinIcon = new ImageIcon(getClass().getResource("/res/youwin_sprite.png"));
         spriteYouWin = youWinIcon.getImage();
         
-        ImageIcon jogarNovamenteIcon = new ImageIcon("src/res/jogardenovo_sprite.png");
+        ImageIcon jogarNovamenteIcon = new ImageIcon(getClass().getResource("/res/jogardenovo_sprite.png"));
         spriteJogarNovamente = jogarNovamenteIcon.getImage();
         
-        ImageIcon sairIcon = new ImageIcon("src/res/sair_sprite.png");
+        ImageIcon sairIcon = new ImageIcon(getClass().getResource("/res/sair_sprite.png"));
         spriteSair = sairIcon.getImage();
         
         configurarMouseListener();

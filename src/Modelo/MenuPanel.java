@@ -1,68 +1,80 @@
 package Modelo;
 
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.RenderingHints;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
 import AramariRUSH.Container;
 import Modelo.Audio.SoundManager;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.*;
-
 public class MenuPanel extends JPanel {
 
-    private Image fundoTela, spriteTitulo;
-    private JButton btnJogar, btnSair;
-    private Image spriteJogar, spriteSair;
-    private SoundManager soundManager;
+    private final transient Image fundoTela;
+    private final transient Image spriteTitulo;
+    private final transient Image spriteJogar;
+    private final transient Image spriteSair;
+    private final JButton btnJogar;
+    private final JButton btnSair;
+    private final transient SoundManager soundManager;
 
     public MenuPanel(Container window) {
-
-        soundManager = SoundManager.getInstance();
-
         // Carrega a imagem de fundo
-        ImageIcon pegaimagem = new ImageIcon("src//res//fundo_menu.png");
-        fundoTela = pegaimagem.getImage();
+        ImageIcon fundoIcon = new ImageIcon(getClass().getResource("/res/fundo_menu.png"));
+        this.fundoTela = fundoIcon.getImage();
 
-        // Carrega o sprite do título
-        ImageIcon tituloIcon = new ImageIcon("src//res//titulo_sprite.png");
-        spriteTitulo = tituloIcon.getImage();
+        // Carrega o título
+        ImageIcon tituloIcon = new ImageIcon(getClass().getResource("/res/titulo_sprite.png"));
+        this.spriteTitulo = tituloIcon.getImage();
 
         // Carrega os sprites dos botões
-        ImageIcon jogarIcon = new ImageIcon("src//res//jogar_sprite.png");
-        spriteJogar = jogarIcon.getImage();
-        ImageIcon sairIcon = new ImageIcon("src//res//sair_sprite.png");
-        spriteSair = sairIcon.getImage();
+        ImageIcon jogarIcon = new ImageIcon(getClass().getResource("/res/jogar_sprite.png"));
+        this.spriteJogar = jogarIcon.getImage();
+
+        ImageIcon sairIcon = new ImageIcon(getClass().getResource("/res/sair_sprite.png"));
+        this.spriteSair = sairIcon.getImage();
 
         // Configura o layout
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
+        // Inicializa o gerenciador de som
+        this.soundManager = SoundManager.getInstance();
+
         // Cria os botões
-        btnJogar = new JButton();
-        btnSair = new JButton();
+        this.btnJogar = new JButton();
+        this.btnSair = new JButton();
 
-        // Estiliza os botões com tamanho fixo de 200x60
-        estilizarBotao(btnJogar, spriteJogar);
-        estilizarBotao(btnSair, spriteSair);
+        // Configura os botões
+        configurarBotao(btnJogar, spriteJogar);
+        configurarBotao(btnSair, spriteSair);
 
-        // Ações dos botões
+        // Configura as ações dos botões
         btnJogar.addActionListener(e -> {
-            soundManager.playSound("button"); // Som de botão
+            soundManager.playSound("button");
             window.showScreen("Gameplay");
         });
 
-        btnSair.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                soundManager.playSound("button"); // Som de botão
-                int resposta = JOptionPane.showConfirmDialog(MenuPanel.this,
-                        "Você tem certeza que vai deixar Aramari?",
-                        "",
-                        JOptionPane.YES_NO_OPTION);
-                if (resposta == JOptionPane.YES_OPTION) {
-                    soundManager.cleanup(); // Limpa recursos de áudio
-                    System.exit(0);
-                }
+        btnSair.addActionListener(e -> {
+            soundManager.playSound("button");
+            int resposta = JOptionPane.showConfirmDialog(MenuPanel.this,
+                    "Você tem certeza que vai deixar Aramari?",
+                    "",
+                    JOptionPane.YES_NO_OPTION);
+            if (resposta == JOptionPane.YES_OPTION) {
+                soundManager.cleanup();
+                System.exit(0);
             }
         });
 
@@ -78,7 +90,7 @@ public class MenuPanel extends JPanel {
         add(btnSair, gbc);
     }
 
-    public void estilizarBotao(JButton botao, Image sprite) {
+    private void configurarBotao(JButton botao, Image sprite) {
         // Remove bordas e fundo padrão
         botao.setBorder(null);
         botao.setContentAreaFilled(false);
@@ -136,7 +148,8 @@ public class MenuPanel extends JPanel {
                 double imgAspect = (double) imgW / imgH;
                 double panelAspect = (double) panelW / panelH;
 
-                int drawW, drawH;
+                int drawW;
+                int drawH;
 
                 if (panelAspect > imgAspect) {
                     drawH = panelH;

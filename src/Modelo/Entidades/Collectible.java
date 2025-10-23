@@ -1,18 +1,18 @@
 package Modelo.Entidades;
 
-import java.awt.Image;
-import javax.swing.ImageIcon;
+import java.awt.Graphics2D;
+
+import javax.imageio.ImageIO;
 
 public class Collectible extends Entity {
 
-    private DiamondType type;
-    private int value;
-    private Image image;
+    private final DiamondType type;
+    private final int value;
 
     public enum DiamondType {
-        COMUM(10, "src/res/objects/cdiamond.png"),
-        RARO(50, "src/res/objects/rdiamond.png"),
-        LENDARIO(100, "src/res/objects/ldiamond.png");
+        COMUM(10, "/res/objects/cdiamond.png"),
+        RARO(50, "/res/objects/rdiamond.png"),
+        LENDARIO(100, "/res/objects/ldiamond.png");
 
         private final int defaultValue;
         private final String imagePath;
@@ -40,17 +40,18 @@ public class Collectible extends Entity {
 
     @Override
     public void load() {
-        String path = type.getImagePath();
-
         try {
-            ImageIcon icon = new ImageIcon(path);
-            image = icon.getImage();
-            if (image != null) {
-                width = image.getWidth(null);
-                height = image.getHeight(null);
+            sprite = ImageIO.read(getClass().getResourceAsStream(type.getImagePath()));
+            if (sprite != null) {
+                width = sprite.getWidth();
+                height = sprite.getHeight();
+            } else {
+                System.err.println("❌ Erro: sprite do diamante não encontrado: " + type.getImagePath());
+                width = 16;
+                height = 16;
             }
         } catch (Exception e) {
-            System.err.println("Erro ao carregar diamante: " + path);
+            System.err.println("❌ Erro ao carregar diamante: " + e.getMessage());
             width = 16;
             height = 16;
         }
@@ -77,8 +78,10 @@ public class Collectible extends Entity {
         return visible;
     }
 
-    public Image getImagem() {
-        return image;
+    @Override
+    public void draw(Graphics2D g2) {
+        if (!visible || sprite == null) return;
+        g2.drawImage(sprite, x, y, width, height, null);
     }
 
     // ========================================

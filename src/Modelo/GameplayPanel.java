@@ -1,13 +1,11 @@
 package Modelo;
 
-import AramariRUSH.Container;
-import Modelo.Audio.SoundManager;
-import Modelo.Entidades.*;
-import Modelo.UI.GameOverScreen;
-import Modelo.UI.Heart;
-import Modelo.UI.ScreenShake;
-import Modelo.UI.WinScreen;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -15,7 +13,22 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
-import javax.swing.*;
+
+import javax.swing.JPanel;
+import javax.swing.Timer;
+
+import AramariRUSH.Container;
+import Modelo.Audio.SoundManager;
+import Modelo.Entidades.Collectible;
+import Modelo.Entidades.Enemy;
+import Modelo.Entidades.EnemyFactory;
+import Modelo.Entidades.Player;
+import Modelo.Entidades.PowerUp;
+import Modelo.Entidades.Projectile;
+import Modelo.UI.GameOverScreen;
+import Modelo.UI.Heart;
+import Modelo.UI.ScreenShake;
+import Modelo.UI.WinScreen;
 import tile.TileManager;
 
 public class GameplayPanel extends JPanel implements ActionListener {
@@ -25,6 +38,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private Timer countdownTimer;
     private Timer spawnTimer;
     private Timer enemySpawnTimer;
+    private Timer powerUpSpawnTimer;
 
     // Game state
     private int timeLeft = 120;
@@ -32,6 +46,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private boolean isWin = false;
     private boolean isStarted = false;
     private int score = 0;
+
+    // Power-up state e constantes
+    private boolean tripleShotActive = false;
+    private long tripleShotEndTime = 0;
+    private static final int POWER_UP_SPAWN_INTERVAL = 15000; // 15 segundos
 
     // FPS tracking
     private long lastFpsTime = System.nanoTime();
@@ -56,6 +75,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private final ArrayList<Enemy> enemies;
     private final ArrayList<Projectile> projectiles;
     private final ArrayList<Collectible> collectibles;
+    private final ArrayList<PowerUp> powerUps;
     private final ArrayList<Heart> hearts;
 
     // Strategy & UI
@@ -84,6 +104,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         
         projectiles = new ArrayList<>();
         collectibles = new ArrayList<>();
+        powerUps = new ArrayList<>();
         enemies = new ArrayList<>();
         hearts = new ArrayList<>();
         scoreStrategy = new CommonScoreStrategy();
@@ -113,11 +134,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
         countdownTimer = new Timer(1000, e -> updateTime());
         spawnTimer = new Timer(3000, e -> spawnDiamond());
         enemySpawnTimer = new Timer(3000, e -> spawnEnemy());
+        powerUpSpawnTimer = new Timer(10000, e -> trySpawnPowerUp()); // A cada 15 segundos
 
         gameTimer.start();
         countdownTimer.start();
         spawnTimer.start();
         enemySpawnTimer.start();
+        powerUpSpawnTimer.start();
         
         // Inicia a música de fundo
         soundManager.playMusic();
@@ -150,11 +173,14 @@ public class GameplayPanel extends JPanel implements ActionListener {
         isStarted = true;
         score = 0;
         timeLeft = 120;
+        tripleShotActive = false;
+        tripleShotEndTime = 0;
 
         // Clear collections
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
+        powerUps.clear();
 
         // Recria o player usando Builder
         player = new Player.PlayerBuilder(400, 400)
@@ -189,13 +215,44 @@ public class GameplayPanel extends JPanel implements ActionListener {
         isStarted = false;
         score = 0;
         timeLeft = 120;
+        tripleShotActive = false;
+        tripleShotEndTime = 0;
 
         // Clear collections
         projectiles.clear();
         collectibles.clear();
         enemies.clear();
+        powerUps.clear();
 
         containerRef.showScreen("Menu");
+    }
+
+    private void trySpawnPowerUp() {
+        if (!isStarted || isGameOver || isWin) return;
+
+        // 40% de chance
+        if (rand.nextInt(100) < 40) {
+            spawnPowerUp();
+        }
+    }
+
+    private void spawnPowerUp() {
+        int x = 0, y = 0;
+        int maxAttempts = 20;
+        int attempts = 0;
+        boolean validPosition = false;
+
+        // Procura posição válida
+        while (attempts < maxAttempts && !validPosition) {
+            x = (rand.nextInt(maxScreenCol - 2) + 1) * tileSize;
+            y = (rand.nextInt(maxScreenRow - 2) + 1) * tileSize;
+            validPosition = !checkTileCollisionAt(x, y, 32, 32);
+            attempts++;
+        }
+
+        if (validPosition) {
+            powerUps.add(new PowerUp.PowerUpBuilder(x, y, PowerUp.PowerUpType.TRIPLE_SHOT).build());
+        }
     }
 
     private void spawnDiamond() {
@@ -263,9 +320,35 @@ public class GameplayPanel extends JPanel implements ActionListener {
             if (c.isVisible() && player.intersects(c)) {
                 score += scoreStrategy.calculateScore(c);
                 c.setVisible(false);
-                soundManager.playSound("collect"); // Som de coleta
+                soundManager.playSound("collect"); 
                 it.remove();
             }
+        }
+    
+        // Verifica colisão com power-ups
+        Iterator<PowerUp> powerUpIt = powerUps.iterator();
+        while (powerUpIt.hasNext()) {
+            PowerUp powerUp = powerUpIt.next();
+            if (powerUp.isVisible() && player.intersects(powerUp)) {
+                activatePowerUp(powerUp);
+                powerUp.setVisible(false);
+                soundManager.playSound("collect");
+                powerUpIt.remove();
+            }
+        }
+    }
+
+    private void activatePowerUp(PowerUp powerUp) {
+        if (powerUp.getType() == PowerUp.PowerUpType.TRIPLE_SHOT) {
+            tripleShotActive = true;
+            tripleShotEndTime = System.currentTimeMillis() + powerUp.getDuration();
+        }
+    }
+
+    private void updatePowerUps() {
+        // Verifica se o power-up expirou
+        if (tripleShotActive && System.currentTimeMillis() >= tripleShotEndTime) {
+            tripleShotActive = false;
         }
     }
 
@@ -299,8 +382,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
             if (enemy.isVisible() && player.intersects(enemy)) {
                 player.takeDamage(1);
                 screenShake.startShake(5, 15);
-                soundManager.playSound("damage"); // Som de dano
-
+                soundManager.playSound("damage");
                 if (player.getHealth() <= 0) {
                     endGameAsLoss();
                 }
@@ -376,8 +458,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
         isWin = true;
         isStarted = false;
         stopAllTimers();
-        soundManager.stopMusic(); // Para a música
-        soundManager.playSound("win"); // Som de vitória
+        soundManager.stopMusic();
+        soundManager.playSound("win");
         winScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
     }
 
@@ -385,8 +467,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
         isGameOver = true;
         isStarted = false;
         stopAllTimers();
-        soundManager.stopMusic(); // Para a música
-        soundManager.playSound("gameover"); // Som de game over
+        soundManager.stopMusic();
+        soundManager.playSound("gameover");
         gameOverScreen.show(score, this::reiniciarJogo, this::voltarAoMenu);
     }
 
@@ -395,6 +477,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         gameTimer.stop();
         spawnTimer.stop();
         enemySpawnTimer.stop();
+        powerUpSpawnTimer.stop();
     }
 
     private void restartAllTimers() {
@@ -402,6 +485,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         countdownTimer.restart();
         spawnTimer.restart();
         enemySpawnTimer.restart();
+        powerUpSpawnTimer.restart();
     }
 
     private void updateFPS() {
@@ -429,6 +513,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
         player.draw(g2);
         drawProjectiles(g2);
         drawCollectibles(g2);
+        drawPowerUps(g2);
         drawEnemies(g2);
 
         g2.translate(-screenShake.getOffsetX(), -screenShake.getOffsetY());
@@ -464,8 +549,16 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private void drawCollectibles(Graphics2D g2) {
         for (Collectible c : collectibles) {
-            if (c.isVisible() && c.getImagem() != null) {
-                g2.drawImage(c.getImagem(), c.getX(), c.getY(), this);
+            if (c.isVisible() && c.getSprite() != null) {
+                g2.drawImage(c.getSprite(), c.getX(), c.getY(), this);
+            }
+        }
+    }
+
+    private void drawPowerUps(Graphics2D g2) {
+        for (PowerUp p : powerUps) {
+            if (p.isVisible() && p.getSprite() != null) {
+                g2.drawImage(p.getSprite(), p.getX(), p.getY(), this);
             }
         }
     }
@@ -487,6 +580,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
         g2.setFont(new Font("Arial", Font.BOLD, 18));
         g2.drawString("Pontuação: " + score, 20, 30);
         g2.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
+        // Indicador de power-up ativo
+        if (tripleShotActive) {
+           long timeRemaining = (tripleShotEndTime - System.currentTimeMillis()) / 1000;
+           g2.setColor(Color.WHITE);
+           g2.setFont(new Font("Arial", Font.BOLD, 18));
+          g2.drawString("TIRO TRIPLO: " + timeRemaining + "s", 20, 80);
+        }
 
         g2.setColor(Color.YELLOW);
         g2.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -515,9 +615,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
         g2.setColor(Color.CYAN);
         g2.setFont(new Font("Arial", Font.BOLD, 12));
-        g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 80);
+        g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 105);
         if (player.isInvulnerable()) {
-            g2.drawString("INVULNERÁVEL", 20, 95);
+            g2.drawString("INVULNERÁVEL", 20, 120);
         }
 
         g2.setColor(new Color(255, 0, 255, 80));
@@ -529,6 +629,10 @@ public class GameplayPanel extends JPanel implements ActionListener {
         g2.fillRect(screenWidth - 32, screenCenterY - spawnMargin, 64, spawnMargin * 2);
         g2.fillRect(screenCenterX - spawnMargin, -32, spawnMargin * 2, 64);
         g2.fillRect(screenCenterX - spawnMargin, screenHeight - 32, spawnMargin * 2, 64);
+
+        if (tripleShotActive) {
+            g2.drawString("POWER-UP ATIVO", 20, 135);
+        }
 
         g2.setColor(Color.YELLOW);
         g2.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
@@ -545,6 +649,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
             updatePlayer();
             updateProjectiles();
             updateEnemies();
+            updatePowerUps();
 
             checkCollisions();
             checkProjectileEnemyCollisions();
@@ -646,7 +751,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private class MouseInputAdapter extends java.awt.event.MouseAdapter {
         @Override
         public void mousePressed(java.awt.event.MouseEvent e) {
-            if (!isStarted || isGameOver) return;
+            if (!isStarted || isGameOver || isWin) return;
             fireProjectile(e.getX(), e.getY());
         }
     }
@@ -664,19 +769,53 @@ public class GameplayPanel extends JPanel implements ActionListener {
             dy = dy / length;
         }
 
-        int projectileSpeed = 8;
+        int projectileSpeed = 4;
         dx *= projectileSpeed;
         dy *= projectileSpeed;
 
         // Usa o Builder para criar o projétil
-        projectiles.add(new Projectile.ProjectileBuilder(
-                playerCenterX, 
-                playerCenterY, 
-                (int)dx, 
-                (int)dy
-        ).build());
-        
-        soundManager.playSound("shoot"); // Som de tiro
+
+        if (tripleShotActive) {
+            // Tiro central
+            projectiles.add(new Projectile.ProjectileBuilder(
+                    playerCenterX, 
+                    playerCenterY, 
+                    (int)dx, 
+                    (int)dy
+            ).build());
+
+            // Tiro à esquerda (ângulo de -15 graus)
+            double angle = -Math.PI / 12; // -15 graus
+            double leftDx = dx * Math.cos(angle) - dy * Math.sin(angle);
+            double leftDy = dx * Math.sin(angle) + dy * Math.cos(angle);
+            projectiles.add(new Projectile.ProjectileBuilder(
+                    playerCenterX, 
+                    playerCenterY, 
+                    (int)leftDx, 
+                    (int)leftDy
+            ).build());
+
+            // Tiro à direita (ângulo de +15 graus)
+            angle = Math.PI / 12; // +15 graus
+            double rightDx = dx * Math.cos(angle) - dy * Math.sin(angle);
+            double rightDy = dx * Math.sin(angle) + dy * Math.cos(angle);
+            projectiles.add(new Projectile.ProjectileBuilder(
+                    playerCenterX, 
+                    playerCenterY, 
+                    (int)rightDx, 
+                    (int)rightDy
+            ).build());
+        } else {
+                //Projetil normal
+                projectiles.add(new Projectile.ProjectileBuilder(
+                    playerCenterX,
+                    playerCenterY,
+                    (int)dx,
+                    (int)dy
+            ).build());
+        }
+
+        soundManager.playSound("shoot");
     }
 
     public boolean isStarted() { return isStarted; }

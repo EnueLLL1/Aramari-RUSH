@@ -1,6 +1,7 @@
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Entidades/Collectible.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Entidades/Entity.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/ScoreStrategy.java
+/home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Entidades/PowerUp.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/GameplayPanel.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/UI/Heart.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Audio/SoundManager.java
@@ -10,6 +11,7 @@
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/tile/Tile.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Entidades/Enemy.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Entidades/Projectile.java
+/home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/Entidades/PowerUpFactory.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/UI/ScreenShake.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/AramariRUSH/Container.java
 /home/enuelll18/Área de trabalho/GITHUB/Aramari-RUSH-Diamonds-for-the-Queen/src/Modelo/UI/WinScreen.java

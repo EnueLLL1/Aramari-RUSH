@@ -1,6 +1,5 @@
 package Modelo.Audio;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,12 +32,12 @@ public class SoundManager {
     
     private void loadSounds() {
         try {
-            loadSound("button", "src/res/sounds/game-start-reset.wav");
-            loadSound("collect", "src/res/sounds/retro-coin-4-236671.wav");
-            loadSound("damage", "src/res/sounds/video-game-hit-noise-001-135821.wav");
-            loadSound("shoot", "src/res/sounds/laser1.wav");
-            loadSound("gameover", "src/res/sounds/game-over.wav");
-            loadSound("win", "src/res/sounds/winsquare-6993.wav");
+            loadSound("button", "/res/sounds/game-start-reset.wav");
+            loadSound("collect", "/res/sounds/retro-coin-4-236671.wav");
+            loadSound("damage", "/res/sounds/video-game-hit-noise-001-135821.wav");
+            loadSound("shoot", "/res/sounds/laser1.wav");
+            loadSound("gameover", "/res/sounds/game-over.wav");
+            loadSound("win", "/res/sounds/winsquare-6993.wav");
             
             loadMusic("src/res/sounds/music-game-loop.wav");
             
@@ -52,18 +51,21 @@ public class SoundManager {
     
     private void loadSound(String name, String path) {
         try {
-            File soundFile = new File(path);
-            if (!soundFile.exists()) {
+            java.io.InputStream is = getClass().getResourceAsStream(path);
+            if (is == null) {
                 System.err.println("❌ Arquivo não encontrado: " + path);
                 return;
             }
             
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
+            // Convertendo InputStream para ByteArrayInputStream para suportar mark/reset
+            byte[] buffer = is.readAllBytes();
+            java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(buffer);
+            
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(bis);
             Clip clip = AudioSystem.getClip();
             clip.open(audioStream);
             setVolume(clip, volume);
             soundClips.put(name, clip);
-            System.out.println("✅ Som carregado: " + name);
             
         } catch (UnsupportedAudioFileException e) {
             System.err.println("❌ Formato não suportado para " + name + ": " + e.getMessage());
@@ -76,13 +78,17 @@ public class SoundManager {
     
     private void loadMusic(String path) {
         try {
-            File musicFile = new File(path);
-            if (!musicFile.exists()) {
+            java.io.InputStream is = getClass().getResourceAsStream("/res/sounds/music-game-loop.wav");
+            if (is == null) {
                 System.err.println("❌ Música não encontrada: " + path);
                 return;
             }
             
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(musicFile);
+            // Convertendo InputStream para ByteArrayInputStream para suportar mark/reset
+            byte[] buffer = is.readAllBytes();
+            java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(buffer);
+            
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(bis);
             musicClip = AudioSystem.getClip();
             musicClip.open(audioStream);
             setVolume(musicClip, volume * 0.6f);
