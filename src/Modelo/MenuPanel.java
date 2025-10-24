@@ -93,7 +93,6 @@ public class MenuPanel extends JPanel {
         int btnWidth = 200;
         int btnHeight = 60;
         int spacing = 20;
-        int totalHeight = (btnHeight * 3) + (spacing * 2);
         
         // Calcula a posição Y considerando o título
         int tituloHeight = (int) (Math.min(400, getWidth() - 40) * 0.75); // Altura do título

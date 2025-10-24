@@ -3,6 +3,7 @@ package AramariRUSH;
 import Modelo.GameplayPanel;
 import Modelo.MenuPanel;
 import Modelo.TutorialPanel;
+import Modelo.UI.FontManager;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -17,6 +18,8 @@ public class Container extends JFrame {
     private TutorialPanel tutorialPanel;
 
     public Container() {
+        // Inicializa o FontManager (carrega a fonte automaticamente)
+        FontManager.getInstance();
 
         //Configura o icone do Jogo
         setIconImage(loadIcon());
@@ -103,6 +106,7 @@ public class Container extends JFrame {
             return null;
         }
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Container::new);

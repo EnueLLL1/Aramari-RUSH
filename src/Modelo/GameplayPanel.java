@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -25,6 +26,7 @@ import Modelo.Entidades.EnemyFactory;
 import Modelo.Entidades.Player;
 import Modelo.Entidades.PowerUp;
 import Modelo.Entidades.Projectile;
+import Modelo.UI.FontManager;
 import Modelo.UI.GameOverScreen;
 import Modelo.UI.Heart;
 import Modelo.UI.ScreenShake;
@@ -50,7 +52,6 @@ public class GameplayPanel extends JPanel implements ActionListener {
     // Power-up state e constantes
     private boolean tripleShotActive = false;
     private long tripleShotEndTime = 0;
-    private static final int POWER_UP_SPAWN_INTERVAL = 15000;
 
     // Bonus mode state
     private boolean bonusModeActive = false;
@@ -58,10 +59,12 @@ public class GameplayPanel extends JPanel implements ActionListener {
     private static final int NORMAL_ENEMY_SPAWN_DELAY = 3000;
     private static final int BONUS_ENEMY_SPAWN_DELAY = 1000;
 
-    // FPS tracking
+    // Performance tracking
     private long lastFpsTime = System.nanoTime();
     private int fpsCounter = 0;
     private int currentFps = 0;
+    private long lastMemoryCheck = System.currentTimeMillis();
+    private long maxMemoryUsed = 0;
 
     // Screen constants
     public final int tileSize = 32;
@@ -93,6 +96,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
     // Debug
     private boolean debugMode = false;
 
+    // FontManager para gerenciar fontes
+    private FontManager fontManager;
+
     public GameplayPanel(Container container) {
         this.containerRef = container;
 
@@ -112,9 +118,9 @@ public class GameplayPanel extends JPanel implements ActionListener {
         enemies = new ArrayList<>();
         hearts = new ArrayList<>();
         scoreStrategy = new CommonScoreStrategy();
-        gameOverScreen = new GameOverScreen(container, this);
-        winScreen = new WinScreen(container, this);
-
+        fontManager = FontManager.getInstance();
+        gameOverScreen = new GameOverScreen(container, this, fontManager.getCustomFont());
+        winScreen = new WinScreen(container, this, fontManager.getCustomFont());
         setupPanel();
         setupTimers();
         initializeHearts();
@@ -347,10 +353,17 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void checkProjectileEnemyCollisions() {
+        if (projectiles.isEmpty() || enemies.isEmpty()) return;
+        
         Iterator<Projectile> projIt = projectiles.iterator();
 
         while (projIt.hasNext()) {
             Projectile proj = projIt.next();
+            if (!proj.isVisible()) {
+                projIt.remove();
+                continue;
+            }
+            
             Iterator<Enemy> enemyIt = enemies.iterator();
             boolean hit = false;
 
@@ -372,6 +385,8 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void checkPlayerEnemyCollisions() {
+        if (enemies.isEmpty() || player.isInvulnerable()) return;
+        
         for (Enemy enemy : enemies) {
             if (enemy.isVisible() && player.intersects(enemy)) {
                 player.takeDamage(1);
@@ -485,11 +500,30 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void stopAllTimers() {
-        countdownTimer.stop();
-        gameTimer.stop();
-        spawnTimer.stop();
-        enemySpawnTimer.stop();
-        powerUpSpawnTimer.stop();
+        if (countdownTimer != null) countdownTimer.stop();
+        if (gameTimer != null) gameTimer.stop();
+        if (spawnTimer != null) spawnTimer.stop();
+        if (enemySpawnTimer != null) enemySpawnTimer.stop();
+        if (powerUpSpawnTimer != null) powerUpSpawnTimer.stop();
+    }
+    
+    /**
+     * Limpa recursos e libera memória
+     */
+    public void cleanup() {
+        stopAllTimers();
+        
+        // Limpa listas de objetos
+        if (projectiles != null) projectiles.clear();
+        if (collectibles != null) collectibles.clear();
+        if (enemies != null) enemies.clear();
+        if (powerUps != null) powerUps.clear();
+        if (hearts != null) hearts.clear();
+        
+        // Para música e sons
+        if (soundManager != null) {
+            soundManager.stopMusic();
+        }
     }
 
     private void restartAllTimers() {
@@ -512,6 +546,24 @@ public class GameplayPanel extends JPanel implements ActionListener {
             currentFps = fpsCounter;
             fpsCounter = 0;
             lastFpsTime = currentTime;
+            
+            // Monitora uso de memória a cada segundo
+            updateMemoryStats();
+        }
+    }
+    
+    private void updateMemoryStats() {
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        maxMemoryUsed = Math.max(maxMemoryUsed, usedMemory);
+        
+        // Log de performance a cada 10 segundos
+        if (System.currentTimeMillis() - lastMemoryCheck > 10000) {
+            System.out.println("Performance Stats - FPS: " + currentFps + 
+                             ", Memory: " + (usedMemory / 1024 / 1024) + "MB" +
+                             ", Max Memory: " + (maxMemoryUsed / 1024 / 1024) + "MB" +
+                             ", Objects: " + (enemies.size() + projectiles.size() + collectibles.size() + powerUps.size()));
+            lastMemoryCheck = System.currentTimeMillis();
         }
     }
 
@@ -520,20 +572,27 @@ public class GameplayPanel extends JPanel implements ActionListener {
         super.paintComponent(g);
 
         Graphics2D g2 = (Graphics2D) g;
+        
+        // Configura rendering hints uma vez só
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
+        // Aplica screen shake
         g2.translate(screenShake.getOffsetX(), screenShake.getOffsetY());
 
+        // Desenha elementos do jogo
         tileM.draw(g2);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
         player.draw(g2);
         drawProjectiles(g2);
         drawCollectibles(g2);
         drawPowerUps(g2);
         drawEnemies(g2);
 
+        // Remove screen shake
         g2.translate(-screenShake.getOffsetX(), -screenShake.getOffsetY());
 
+        // Desenha UI
         drawHearts(g2);
 
         if (isGameOver) {
@@ -552,29 +611,45 @@ public class GameplayPanel extends JPanel implements ActionListener {
             drawDebugInfo(g2);
         }
 
-        Toolkit.getDefaultToolkit().sync();
+        // Sincroniza apenas se necessário
+        if (currentFps < 30) {
+            Toolkit.getDefaultToolkit().sync();
+        }
     }
 
     private void drawProjectiles(Graphics2D g2) {
+        if (projectiles.isEmpty()) return;
+        
         for (Projectile p : projectiles) {
-            if (p.getImagem() != null) {
-                g2.drawImage(p.getImagem(), p.getX(), p.getY(), this);
+            Image img = p.getImagem();
+            if (img != null) {
+                g2.drawImage(img, p.getX(), p.getY(), this);
             }
         }
     }
 
     private void drawCollectibles(Graphics2D g2) {
+        if (collectibles.isEmpty()) return;
+        
         for (Collectible c : collectibles) {
-            if (c.isVisible() && c.getSprite() != null) {
-                g2.drawImage(c.getSprite(), c.getX(), c.getY(), this);
+            if (c.isVisible()) {
+                Image sprite = c.getSprite();
+                if (sprite != null) {
+                    g2.drawImage(sprite, c.getX(), c.getY(), this);
+                }
             }
         }
     }
 
     private void drawPowerUps(Graphics2D g2) {
+        if (powerUps.isEmpty()) return;
+        
         for (PowerUp p : powerUps) {
-            if (p.isVisible() && p.getSprite() != null) {
-                g2.drawImage(p.getSprite(), p.getX(), p.getY(), this);
+            if (p.isVisible()) {
+                Image sprite = p.getSprite();
+                if (sprite != null) {
+                    g2.drawImage(sprite, p.getX(), p.getY(), this);
+                }
             }
         }
     }
@@ -593,7 +668,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
 
     private void drawHUD(Graphics2D g2) {
         g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.setFont(fontManager.getCustomFont(Font.BOLD, 32));
         g2.drawString("Pontuação: " + score, 20, 30);
         
         if (bonusModeActive) {
@@ -607,12 +682,12 @@ public class GameplayPanel extends JPanel implements ActionListener {
         if (tripleShotActive) {
            long timeRemaining = (tripleShotEndTime - System.currentTimeMillis()) / 1000;
            g2.setColor(Color.CYAN);
-           g2.setFont(new Font("Arial", Font.BOLD, 18));
+           g2.setFont(fontManager.getCustomFont(Font.BOLD, 32));
            g2.drawString("TIRO TRIPLO: " + timeRemaining + "s", 20, 80);
         }
 
         g2.setColor(Color.YELLOW);
-        g2.setFont(new Font("Arial", Font.PLAIN, 12));
+        g2.setFont(fontManager.getCustomFont(Font.PLAIN, 24));
         g2.drawString("FPS: " + currentFps, getWidth() - 70, 20);
     }
 
@@ -637,13 +712,13 @@ public class GameplayPanel extends JPanel implements ActionListener {
         }
 
         g2.setColor(Color.CYAN);
-        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setFont(fontManager.getCustomFont(Font.BOLD, 24));
         g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 105);
         if (player.isInvulnerable()) {
             g2.drawString("INVULNERÁVEL", 20, 120);
         }
 
-        g2.setColor(Color.DARK_GRAY);
+        g2.setColor(new Color(255,0,255,80));
         int spawnMargin = getHeight() / 6;
         int screenCenterX = getWidth() >> 1;
         int screenCenterY = getHeight() >> 1;
@@ -671,6 +746,14 @@ public class GameplayPanel extends JPanel implements ActionListener {
         g2.setColor(Color.YELLOW);
         g2.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
         g2.drawString("Áreas de Spawn ON", 20, getHeight() - 35);
+        
+        // Performance info
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        g2.setColor(Color.CYAN);
+        g2.drawString("Memory: " + (usedMemory / 1024 / 1024) + "MB", 20, getHeight() - 50);
+        g2.drawString("Max Memory: " + (maxMemoryUsed / 1024 / 1024) + "MB", 20, getHeight() - 65);
+        g2.drawString("Objects: " + (enemies.size() + projectiles.size() + collectibles.size() + powerUps.size()), 20, getHeight() - 80);
     }
 
     private String formatTime(int seconds) {

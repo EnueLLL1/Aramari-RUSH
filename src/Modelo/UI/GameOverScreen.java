@@ -39,8 +39,9 @@ public class GameOverScreen {
     
     private boolean hoverJogarNovamente;
     private boolean hoverSair;
-    
-    public GameOverScreen(Container container, JPanel parent) {
+    private Font customFont;
+
+    public GameOverScreen(Container container, JPanel parent, Font customFont) {
         this.containerRef = container;
         this.parentPanel = parent;
         this.isVisible = false;
@@ -48,6 +49,7 @@ public class GameOverScreen {
         this.hoverJogarNovamente = false;
         this.hoverSair = false;
         this.soundManager = SoundManager.getInstance();
+        this.customFont = customFont;
         
         ImageIcon gameOverIcon = new ImageIcon(getClass().getResource("/res/gameover_sprite.png"));
         spriteGameOver = gameOverIcon.getImage();
@@ -159,8 +161,8 @@ public class GameOverScreen {
         }
         
         
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 32));
+        g2.setColor(Color.BLACK);
+        g2.setFont(customFont.deriveFont(Font.BOLD, 40));
         String scoreText = "Pontuação: " + score;
         int scoreWidth = g2.getFontMetrics().stringWidth(scoreText);
         g2.drawString(scoreText, panelWidth / 2 - scoreWidth / 2, panelHeight / 2 + 10);

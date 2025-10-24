@@ -36,6 +36,7 @@ Modelo/Entidades/Enemy$EnemyBuilder.class
 Modelo/CommonScoreStrategy$1.class
 Modelo/UI/GameOverScreen$1.class
 Modelo/ScoreStrategy.class
+Modelo/UI/FontManager.class
 Modelo/UI/WinScreen.class
 Modelo/TutorialPanel.class
 Modelo/UI/ScreenShake.class
