@@ -667,9 +667,11 @@ public class GameplayPanel extends JPanel implements ActionListener {
     }
 
     private void drawHUD(Graphics2D g2) {
+        
         g2.setColor(Color.WHITE);
-        g2.setFont(fontManager.getCustomFont(Font.BOLD, 32));
+        g2.setFont(fontManager.getCustomFont(Font.BOLD, 24));
         g2.drawString("Pontuação: " + score, 20, 30);
+        
         
         if (bonusModeActive) {
             g2.setColor(Color.RED);
@@ -679,19 +681,22 @@ public class GameplayPanel extends JPanel implements ActionListener {
             g2.drawString("Tempo: " + formatTime(timeLeft), 20, 55);
         }
         
+        
         if (tripleShotActive) {
            long timeRemaining = (tripleShotEndTime - System.currentTimeMillis()) / 1000;
            g2.setColor(Color.CYAN);
-           g2.setFont(fontManager.getCustomFont(Font.BOLD, 32));
-           g2.drawString("TIRO TRIPLO: " + timeRemaining + "s", 20, 80);
+           g2.setFont(fontManager.getCustomFont(Font.BOLD, 22));
+           g2.drawString("TIRO TRIPLO: " + timeRemaining + "s", 20, 78);
         }
 
+        
         g2.setColor(Color.YELLOW);
-        g2.setFont(fontManager.getCustomFont(Font.PLAIN, 24));
-        g2.drawString("FPS: " + currentFps, getWidth() - 70, 20);
+        g2.setFont(fontManager.getCustomFont(Font.PLAIN, 18));
+        g2.drawString("FPS: " + currentFps, getWidth() - 85, 22);
     }
 
     private void drawDebugInfo(Graphics2D g2) {
+        // Hitboxes
         g2.setColor(new Color(255, 0, 0, 160));
         g2.drawRect(player.getX(), player.getY(), player.getWidth(), player.getHeight());
 
@@ -702,6 +707,7 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
 
+        // Tiles de colisão
         g2.setColor(new Color(0, 0, 255, 60));
         for (int col = 0; col < maxScreenCol; col++) {
             for (int row = 0; row < maxScreenRow; row++) {
@@ -711,13 +717,15 @@ public class GameplayPanel extends JPanel implements ActionListener {
             }
         }
 
+        // Informações de vida e invulnerabilidade 
         g2.setColor(Color.CYAN);
-        g2.setFont(fontManager.getCustomFont(Font.BOLD, 24));
-        g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 105);
+        g2.setFont(fontManager.getCustomFont(Font.BOLD, 18));
+        g2.drawString("Vida: " + player.getHealth() + "/" + player.getMaxHealth(), 20, 100);
         if (player.isInvulnerable()) {
-            g2.drawString("INVULNERÁVEL", 20, 120);
+            g2.drawString("INVULNERÁVEL", 20, 118);
         }
 
+        // Áreas de spawn
         g2.setColor(new Color(255,0,255,80));
         int spawnMargin = getHeight() / 6;
         int screenCenterX = getWidth() >> 1;
@@ -728,32 +736,35 @@ public class GameplayPanel extends JPanel implements ActionListener {
         g2.fillRect(screenCenterX - spawnMargin, -32, spawnMargin * 2, 64);
         g2.fillRect(screenCenterX - spawnMargin, screenHeight - 32, spawnMargin * 2, 64);
 
+        // Power-up e modo bonus 
         if (tripleShotActive) {
-            g2.drawString("POWER-UP ATIVO", 20, 135);
+            g2.setColor(Color.CYAN);
+            g2.drawString("POWER-UP ATIVO", 20, 136);
         }
         
         if (bonusModeActive) {
             g2.setColor(Color.RED);
-            g2.drawString("MODO BONUS ATIVO!", 20, 150);
-            g2.drawString("Estratégia: BonusScoreStrategy", 20, 165);
-            g2.drawString("Enemy Spawn: " + BONUS_ENEMY_SPAWN_DELAY + "ms", 20, 180);
+            g2.drawString("MODO BONUS ATIVO!", 20, 154);
+            g2.drawString("Estratégia: BonusScoreStrategy", 20, 172);
+            g2.drawString("Enemy Spawn: " + BONUS_ENEMY_SPAWN_DELAY + "ms", 20, 190);
         } else {
             g2.setColor(Color.GREEN);
-            g2.drawString("Estratégia: CommonScoreStrategy", 20, 150);
-            g2.drawString("Enemy Spawn: " + NORMAL_ENEMY_SPAWN_DELAY + "ms", 20, 165);
+            g2.drawString("Estratégia: CommonScoreStrategy", 20, 154);
+            g2.drawString("Enemy Spawn: " + NORMAL_ENEMY_SPAWN_DELAY + "ms", 20, 172);
         }
 
+        // Indicadores de debug 
         g2.setColor(Color.YELLOW);
         g2.drawString("DEBUG MODE ON (F3)", 20, getHeight() - 20);
-        g2.drawString("Áreas de Spawn ON", 20, getHeight() - 35);
+        g2.drawString("Áreas de Spawn ON", 20, getHeight() - 38);
         
-        // Performance info
+        // Performance info 
         Runtime runtime = Runtime.getRuntime();
         long usedMemory = runtime.totalMemory() - runtime.freeMemory();
         g2.setColor(Color.CYAN);
-        g2.drawString("Memory: " + (usedMemory / 1024 / 1024) + "MB", 20, getHeight() - 50);
-        g2.drawString("Max Memory: " + (maxMemoryUsed / 1024 / 1024) + "MB", 20, getHeight() - 65);
-        g2.drawString("Objects: " + (enemies.size() + projectiles.size() + collectibles.size() + powerUps.size()), 20, getHeight() - 80);
+        g2.drawString("Memory: " + (usedMemory / 1024 / 1024) + "MB", 20, getHeight() - 56);
+        g2.drawString("Max Memory: " + (maxMemoryUsed / 1024 / 1024) + "MB", 20, getHeight() - 74);
+        g2.drawString("Objects: " + (enemies.size() + projectiles.size() + collectibles.size() + powerUps.size()), 20, getHeight() - 92);
     }
 
     private String formatTime(int seconds) {
